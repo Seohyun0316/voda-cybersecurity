@@ -1,0 +1,22 @@
+name: Ruleset CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate-ruleset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install regex toml
+      - name: Validate ruleset compilation
+        run: python validate.py
+        working-directory: ruleset
+      - name: Smoke tests
+        run: python smoke.py
+        working-directory: ruleset

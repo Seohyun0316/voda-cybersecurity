@@ -1,0 +1,18 @@
+{
+  "name": "vibesafe",
+  "displayName": "VibeSafe",
+  "description": "AI 생성 코드 보안 취약점 실시간 경고",
+  "version": "0.0.1",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Linters"],
+  "activationEvents": ["onLanguage:python", "onLanguage:javascript"],
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
