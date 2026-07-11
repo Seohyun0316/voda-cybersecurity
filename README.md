@@ -37,6 +37,35 @@ Flask API Server
 Regex Ruleset (1차 후보 추출) → RandomForest (오탐 필터)
 ```
 
+## 📁 저장소 구조
+
+```
+voda-cybersecurity/
+├── docs/                   # 프로젝트 문서
+│   ├── taxonomy.md         #   취약점 분류 체계 (CWE·OWASP·PII 매핑표)
+│   ├── risk-scoring.md     #   위험도 산정 공식 (빈도 × 심각도 × 법적 가중치)
+│   ├── legal-mapping.md    #   CWE ↔ 법 조항·처벌 사례 매핑
+│   └── api-spec.md         #   /detect API 요청·응답 스키마
+├── ruleset/                # 정규표현식 탐지 룰셋 + 검증 스크립트
+│   ├── ruleset.toml        #   탐지 룰 정의
+│   ├── validate.py         #   룰 컴파일 검사
+│   ├── smoke.py            #   탐지 동작 테스트
+│   └── perf_coverage.py    #   성능·커버리지 측정
+├── server/                 # Flask API 서버 (ML/백엔드 파트)
+│   ├── app.py              #   /detect 엔드포인트
+│   ├── detector/           #   정규식 매칭 + RandomForest 오탐 필터
+│   └── model/              #   모델 학습 스크립트
+├── extension/              # VS Code 익스텐션 (프론트엔드 파트)
+│   └── src/                #   TypeScript 소스
+├── data/                   # 데이터 수집
+│   ├── scripts/            #   GitHub·AI 코드 수집 스크립트
+│   ├── ai_generated/       #   LLM 생성 코드 샘플 (커밋 OK)
+│   └── schema.sql          #   samples / findings DB 스키마
+│   ※ GitHub 크롤링 원본은 data/raw/ (로컬 전용, 커밋 금지)
+└── .github/workflows/      # CI (룰셋 자동 검증)
+```
+
+
 ## 시작하기
 
 ### 서버 실행
