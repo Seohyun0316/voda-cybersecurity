@@ -1,20 +1,55 @@
-import bcrypt
+import sqlite3
+import hashlib
 
-def hash_password(password: str) -> str:
-    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
-    return hashed.decode("utf-8")
+# DB 연결
+conn = sqlite3.connect("member.db")
+cursor = conn.cursor()
 
-def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(
-        password.encode("utf-8"),
-        hashed.encode("utf-8")
+# 회원 테이블 생성
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    password TEXT NOT NULL
+)
+""")
+
+
+# 비밀번호 해싱 함수
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+# 회원가입 함수
+def register():
+    username = input("아이디 입력: ")
+    password = input("비밀번호 입력: ")
+
+    # 비밀번호 암호화(해싱)
+    hashed_password = hash_password(password)
+
+    # DB 저장
+    cursor.execute(
+        "INSERT INTO users(username, password) VALUES (?, ?)",
+        (username, hashed_password)
     )
 
-# 예시
-password = "MySecurePassword123!"
+    conn.commit()
 
-hashed = hash_password(password)
-print("저장할 해시:", hashed)
+    print("회원가입 완료!")
 
-print(verify_password("MySecurePassword123!", hashed))  # True
-print(verify_password("wrongpassword", hashed))         # False
+
+# 회원가입 실행
+register()
+
+
+# 저장된 데이터 확인
+cursor.execute("SELECT * FROM users")
+users = cursor.fetchall()
+
+print("\nDB 저장 내용")
+for user in users:
+    print(user)
+
+
+conn.close()        # False
