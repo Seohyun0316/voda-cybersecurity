@@ -1,58 +1,66 @@
-from flask import Flask, request, jsonify
-from werkzeug.security import generate_password_hash
-import sqlite3
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from pydantic import BaseModel, EmailStr
+import bcrypt
 
-app = Flask(__name__)
+app = FastAPI()
 
-# 데이터베이스 초기화 (users 테이블 생성)
-def init_db():
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
+# 1. SQLite 데이터베이스 설정
+SQLALCHEMY_DATABASE_URL = "sqlite:///./users.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-@app.route('/signup', methods=['POST'])
-def signup():
-    # 1. 클라이언트로부터 데이터 받기
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+# 2. DB 테이블 모델 정의
+class UserDB(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)  # 암호화된 비밀번호가 저장될 공간
 
-    # 2. 데이터 유효성 검사
-    if not username or not password:
-        return jsonify({'error': '아이디와 비밀번호를 모두 입력해주세요.'}), 400
+# 데이터베이스 테이블 생성
+Base.metadata.create_all(bind=engine)
 
-    # 3. 비밀번호 해싱 (입력받은 비밀번호를 안전한 문자열로 변환)
-    # 만약 정말로 평문 저장을 고집하셔야 하는 특수한 테스트 상황이라면, 
-    # 이 부분을 지우고 입력받은 password 변수를 그대로 DB에 넣으시면 됩니다.
-    hashed_password = generate_password_hash(password)
-
-    # 4. 데이터베이스에 저장
+# DB 세션 의존성 주입 함수
+def get_db():
+    db = SessionLocal()
     try:
-        conn = sqlite3.connect('users.db')
-        c = conn.cursor()
-        
-        # 해싱된 비밀번호를 데이터베이스에 저장
-        c.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed_password))
-        conn.commit()
-        
-        return jsonify({'message': '회원가입이 성공적으로 완료되었습니다.'}), 201
-        
-    except sqlite3.IntegrityError:
-        # 중복된 아이디가 있을 경우의 예외 처리
-        return jsonify({'error': '이미 존재하는 아이디입니다.'}), 409
-        
+        yield db
     finally:
-        conn.close()
+        db.close()
 
-if __name__ == '__main__':
-    init_db()
-    # 서버 실행
-    app.run(debug=True)
+# 3. 요청 데이터 검증을 위한 Pydantic 모델
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str
+
+# 4. 회원가입 API 엔드포인트
+@app.post("/api/register")
+def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
+    # [체크] 이미 가입된 이메일인지 확인
+    existing_user = db.query(UserDB).filter(UserDB.email == user_data.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
+    
+    # [암호화] 입력받은 비밀번호 문자열을 바이트로 변환 후 해싱
+    password_bytes = user_data.password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password_bytes, salt)
+    
+    # [저장] 디비에는 텍스트 형태로 디코딩하여 저장
+    new_user = UserDB(
+        email=user_data.email,
+        password=hashed_password.decode('utf-8')
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return {
+        "message": "회원가입이 성공적으로 완료되었습니다.",
+        "user": {"id": new_user.id, "email": new_user.email}
+    }
