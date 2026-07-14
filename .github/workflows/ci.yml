@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install regex toml
+      - run: pip install regex toml requests
       - name: Validate ruleset compilation
         run: python validate.py
         working-directory: ruleset
