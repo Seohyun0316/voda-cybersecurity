@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>방명록</title></head>
+<body>
+<h2>방명록</h2>
+<input type="text" id="nameInput" placeholder="이름">
+<textarea id="messageInput" placeholder="메시지"></textarea>
+<button onclick="addMessage()">등록</button>
+<div id="guestbook"></div>
+<script>
+function addMessage() {
+  const name = document.getElementById('nameInput').value;
+  const message = document.getElementById('messageInput').value;
+  document.getElementById('guestbook').innerHTML += '<div><strong>' + name + '</strong>: ' + message + '</div>';
+  document.getElementById('nameInput').value = '';
+  document.getElementById('messageInput').value = '';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>함수 실행기</title></head>
+<body>
+<h2>함수 실행기</h2>
+<input type="text" id="funcInput" placeholder="함수 이름 또는 코드 입력">
+<button onclick="runFunc()">실행</button>
+<div id="result"></div>
+<script>
+function hello() { return '안녕하세요!'; }
+function getTime() { return new Date().toLocaleString(); }
+function add(a, b) { return a + b; }
+
+function runFunc() {
+  const input = document.getElementById('funcInput').value;
+  try {
+    const result = eval(input);
+    document.getElementById('result').innerHTML = '결과: ' + result;
+  } catch(e) {
+    document.getElementById('result').innerHTML = '오류: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>

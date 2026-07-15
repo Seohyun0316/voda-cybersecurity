@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>검색</title></head>
+<body>
+<h2>검색</h2>
+<input type="text" id="searchInput" placeholder="검색어 입력">
+<button onclick="search()">검색</button>
+<div id="result"></div>
+<script>
+function search() {
+  const keyword = document.getElementById('searchInput').value;
+  document.getElementById('result').innerHTML = '<h3>\'' + keyword + '\' 검색 결과</h3>';
+}
+</script>
+</body>
+</html>

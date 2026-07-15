@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>환영 페이지</title></head>
+<body>
+<h1>이름 입력</h1>
+<input type="text" id="nameInput" placeholder="이름을 입력하세요">
+<button onclick="showWelcome()">확인</button>
+<div id="result"></div>
+<script>
+function showWelcome() {
+  const name = document.getElementById('nameInput').value;
+  document.getElementById('result').innerHTML = '<h2>' + name + '님 환영합니다</h2>';
+}
+</script>
+</body>
+</html>
