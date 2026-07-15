@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>이벤트 안내</title></head>
+<body>
+<div id="eventInfo"></div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const eventName = params.get('event') || '이벤트';
+const date = params.get('date') || '미정';
+const place = params.get('place') || '미정';
+document.getElementById('eventInfo').innerHTML =
+  '<h1>' + eventName + '</h1>' +
+  '<p>날짜: ' + date + '</p>' +
+  '<p>장소: ' + place + '</p>';
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>계산기</title></head>
+<body>
+<h2>계산기</h2>
+<input type="text" id="expr" placeholder="수식 입력 (예: 2+3*4)">
+<button onclick="calculate()">계산</button>
+<div id="result"></div>
+<script>
+function calculate() {
+  const expr = document.getElementById('expr').value;
+  const result = eval(expr);
+  document.getElementById('result').innerHTML = '결과: ' + result;
+}
+</script>
+</body>
+</html>
