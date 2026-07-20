@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>게시글 보기</title></head>
+<body>
+<h2 id="post-title"></h2>
+<div id="post-content"></div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const postId = params.get('id') || '1';
+
+fetch('/api/post?id=' + postId)
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('post-title').innerHTML = data.title;
+    document.getElementById('post-content').innerHTML = data.content;
+  });
+</script>
+</body>
+</html>
