@@ -1,17 +1,89 @@
 {
   "name": "vibesafe",
   "displayName": "VibeSafe",
-  "description": "AI 생성 코드 보안 취약점 실시간 경고",
-  "version": "0.0.1",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Linters"],
-  "activationEvents": ["onLanguage:python", "onLanguage:javascript"],
+  "description": "실시간 보안 · 법적 위험 분석 — AI 생성 코드의 보안 취약점과 법적 리스크를 에디터에서 바로 알려줍니다.",
+  "version": "0.1.0",
+  "publisher": "vibesafe-team",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vibesafe",
+          "title": "VibeSafe",
+          "icon": "media/shield.svg"
+        }
+      ]
+    },
+    "views": {
+      "vibesafe": [
+        {
+          "type": "webview",
+          "id": "vibesafe.riskPanel",
+          "name": "위험 분석"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "vibesafe.analyzeFile",
+        "title": "VibeSafe: 현재 파일 검사",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "vibesafe.showPanel",
+        "title": "VibeSafe: 위험 분석 패널 열기"
+      }
+    ],
+    "configuration": {
+      "title": "VibeSafe",
+      "properties": {
+        "vibesafe.engine": {
+          "type": "string",
+          "enum": [
+            "rules",
+            "remote"
+          ],
+          "default": "rules",
+          "description": "분석 엔진 선택. rules = 로컬 규칙 기반, remote = ML 백엔드 API (백엔드 연결 후 사용)"
+        },
+        "vibesafe.remoteEndpoint": {
+          "type": "string",
+          "default": "http://localhost:5000/detect",
+          "description": "ML 백엔드 /detect API 엔드포인트 (Flask 기본 5000, mock 서버 테스트 시 http://localhost:8788/detect)"
+        }
+      }
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "vibesafe.analyzeFile",
+          "group": "navigation",
+          "when": "resourceLangId =~ /python|javascript|typescript|java|go|php|ruby/"
+        }
+      ]
+    }
+  },
   "scripts": {
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node --test \"out/test/**/*.test.js\"",
+    "mock-server": "node mock-server/server.js",
+    "batch": "node scripts/batchAnalyze.js"
   },
   "devDependencies": {
+    "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.4.0"
   }
