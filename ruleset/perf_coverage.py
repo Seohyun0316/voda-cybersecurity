@@ -1,4 +1,4 @@
-"""Performance and full positive-coverage check for ruleset.toml v1.x.
+"""Performance and full positive-coverage check for ruleset.toml v2.x.
 
 Usage: python perf_coverage.py
 """
@@ -24,8 +24,8 @@ def load_ruleset():
         data = tomllib.load(f)
 
     version = str(data.get("version", ""))
-    if not version.startswith("1."):
-        raise ValueError(f"ruleset v1.x is required, got {version!r}")
+    if not version.startswith("2."):
+        raise ValueError(f"ruleset v2.x is required, got {version!r}")
 
     keyword_sets = data.get("keyword_sets")
     rules = data.get("rules")
@@ -124,7 +124,7 @@ def main():
     for duration, rule_id, scenario in sorted(search_timings, reverse=True)[:10]:
         print(f"  {duration:8.2f} ms  {rule_id:12s} on {scenario}")
 
-    print("\nFull v1 positive coverage:")
+    print("\nFull v2 positive coverage:")
     coverage_passed = 0
     for expected_id in sorted(set(rule_ids) & fixture_ids):
         source = POSITIVE_CASES[expected_id]
@@ -153,7 +153,7 @@ def main():
         return 1
 
     print(
-        f"\nAll {coverage_passed}/{len(rules)} rules detected their v1 fixtures; "
+        f"\nAll {coverage_passed}/{len(rules)} rules detected their v2 fixtures; "
         "no performance timeout occurred."
     )
     return 0
