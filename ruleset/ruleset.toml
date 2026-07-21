@@ -26,14 +26,17 @@
 # [v1.1.1 변경 사항]
 # camelCase 탐지에 있어서 약간의 성능 개선
 
-#[v1.2.0 변경 사항]
+# [v1.2.0 변경 사항]
 # A02-434-002, A02-434-003을 파이썬 룰로 수정
 
+# [v2.0.0 변경 사항]
+# 최종적으로 사용할 룰셋 외 다른 룰들은 모두 주석 처리 및 일부 오류 수정
+
 title = "VibeSafe Rule Set"
-version = "1.1.1" 
+version = "2.0.0" 
 [rule_config]
 # 현재는 언어 필터링에 사용하지 않으며 룰셋의 대상 언어를 나타내는 메타데이터다.
-target_lang = ["Python", "JavaScript"]
+target_lang = ["Python"]
 
 # 각 regex는 {passwords}, {tokens}처럼 필요한 키워드 셋을 직접 참조한다.
 [keyword_sets]
@@ -278,24 +281,24 @@ security_random_contexts = [
 # PII #
 #######
 
-[[rules]]
+# [[rules]]
 
-id = "PII-200-001"
-name = "Exposure of Sensitive Information"
-desc = "API key, 비밀번호 등 민감 정보가 노출된 경우"
-owasp = ["PII"] # OWASP 항목은 아니지만 대주제로서의 일관된 매핑
-cwe = ["CWE-200"]
-severity = "high"
+# id = "PII-200-001"
+# name = "Exposure of Sensitive Information"
+# desc = "API key, 비밀번호 등 민감 정보가 노출된 경우"
+# owasp = ["PII"] # OWASP 항목은 아니지만 대주제로서의 일관된 매핑
+# cwe = ["CWE-200"]
+# severity = "high"
 
-allowlist = [
-  '''(?ix)(?:^["']?[A-Za-z_$][A-Za-z0-9_$-]*["']?\s*(?::\s*[A-Za-z_$][A-Za-z0-9_$<>\[\]., |]*\s*=|:=|=>|[=:])\s*(?:[bru]{0,2})?(?:["'](?:placeholder|replace[_-]?me|your[_-]?(?:password|secret|api[_-]?key|token))["']|`(?:placeholder|replace[_-]?me|your[_-]?(?:password|secret|api[_-]?key|token))`|(?:placeholder|replace[_-]?me|your[_-]?(?:password|secret|api[_-]?key|token)))$|^["']?(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:hashed[_-]?(?:password|secret|token)|(?:password|secret|token)[_-]?(?:hash|digest|checksum))(?:[_-][A-Za-z0-9]+){0,2}["']?\s*(?::\s*[A-Za-z_$][A-Za-z0-9_$<>\[\]., |]*\s*=|:=|=>|[=:])\s*[^\r\n]+$)''',
-  '''(?ix)^['"]?(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:email|e[_-]?mail)(?:[_-][A-Za-z0-9]+){0,2}['"]?\s*[:=]\s*(?:[bru]{0,2})?['"][A-Z0-9._%+-]+@(?:example\.(?:com|org|net)|test\.invalid)['"]$''',
-  '''(?ix)\b(?P<vibesafe_pii_sentinel>blank|dummy|example|sample|test)[_-]?token\b\s*(?:=|:)\s*(?:[bru]{0,2})?['"](?:(?P=vibesafe_pii_sentinel))?['"]''',
-  '''(?ix)^accesskey\s*:\s*['"]accessKey['"]$''',
-  '''(?ix)^['"]Access-Control-Allow-Credentials['"]\s*:\s*['"][^'"\r\n]*['"]$''',
-  '''(?ix)^[A-Za-z0-9_$]*token[A-Za-z0-9_$]*\s*=\s*['"]<!--\s*[A-Za-z0-9_$]*token[A-Za-z0-9_$]*\s*-->['"]$'''
-]
-regex = '''(?ix)(?:["']?(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:{personal_identifiers}|{personal_profile}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials}|{database_credentials}|{cryptographic_keys}|{generic_credentials})(?:[_-][A-Za-z0-9]+){0,2}(?![A-Za-z0-9])["']?\s*(?::\s*[A-Za-z_][A-Za-z0-9_.\[\], |]*\s*=|:=|=>|[=:])\s*(?:[bru]{0,2})?(?:["'][^"'\r\n]{4,}["']|`(?![^`\r\n]*\$\{)[^`\r\n]{4,}`)|(?m:^(?-i:(?=[A-Z][A-Z0-9_]{0,100}[ \t]*=))(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:{personal_identifiers}|{personal_profile}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials}|{database_credentials}|{cryptographic_keys}|{generic_credentials})(?:[_-][A-Za-z0-9]+){0,2}[ \t]*=[ \t]*(?!os\.getenv|environ(?:\.get|\[)|settings\.|process\.env|config\.|vault\.|prompt\s*\(|get_[A-Za-z0-9_]*\s*\(|load_[A-Za-z0-9_]*\s*\(|await\s+|\$\{|\$[A-Za-z_]|\{\{|<)[A-Za-z0-9][A-Za-z0-9_./+@:=!-]{3,}(?=[ \t]*(?:\#[^\r\n]*)?$)))'''
+# allowlist = [
+#   '''(?ix)(?:^["']?[A-Za-z_$][A-Za-z0-9_$-]*["']?\s*(?::\s*[A-Za-z_$][A-Za-z0-9_$<>\[\]., |]*\s*=|:=|=>|[=:])\s*(?:[bru]{0,2})?(?:["'](?:placeholder|replace[_-]?me|your[_-]?(?:password|secret|api[_-]?key|token))["']|`(?:placeholder|replace[_-]?me|your[_-]?(?:password|secret|api[_-]?key|token))`|(?:placeholder|replace[_-]?me|your[_-]?(?:password|secret|api[_-]?key|token)))$|^["']?(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:hashed[_-]?(?:password|secret|token)|(?:password|secret|token)[_-]?(?:hash|digest|checksum))(?:[_-][A-Za-z0-9]+){0,2}["']?\s*(?::\s*[A-Za-z_$][A-Za-z0-9_$<>\[\]., |]*\s*=|:=|=>|[=:])\s*[^\r\n]+$)''',
+#   '''(?ix)^['"]?(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:email|e[_-]?mail)(?:[_-][A-Za-z0-9]+){0,2}['"]?\s*[:=]\s*(?:[bru]{0,2})?['"][A-Z0-9._%+-]+@(?:example\.(?:com|org|net)|test\.invalid)['"]$''',
+#   '''(?ix)\b(?P<vibesafe_pii_sentinel>blank|dummy|example|sample|test)[_-]?token\b\s*(?:=|:)\s*(?:[bru]{0,2})?['"](?:(?P=vibesafe_pii_sentinel))?['"]''',
+#   '''(?ix)^accesskey\s*:\s*['"]accessKey['"]$''',
+#   '''(?ix)^['"]Access-Control-Allow-Credentials['"]\s*:\s*['"][^'"\r\n]*['"]$''',
+#   '''(?ix)^[A-Za-z0-9_$]*token[A-Za-z0-9_$]*\s*=\s*['"]<!--\s*[A-Za-z0-9_$]*token[A-Za-z0-9_$]*\s*-->['"]$'''
+# ]
+# regex = '''(?ix)(?:["']?(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:{personal_identifiers}|{personal_profile}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials}|{database_credentials}|{cryptographic_keys}|{generic_credentials})(?:[_-][A-Za-z0-9]+){0,2}(?![A-Za-z0-9])["']?\s*(?::\s*[A-Za-z_][A-Za-z0-9_.\[\], |]*\s*=|:=|=>|[=:])\s*(?:[bru]{0,2})?(?:["'][^"'\r\n]{4,}["']|`(?![^`\r\n]*\$\{)[^`\r\n]{4,}`)|(?m:^(?-i:(?=[A-Z][A-Z0-9_]{0,100}[ \t]*=))(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:{personal_identifiers}|{personal_profile}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials}|{database_credentials}|{cryptographic_keys}|{generic_credentials})(?:[_-][A-Za-z0-9]+){0,2}[ \t]*=[ \t]*(?!os\.getenv|environ(?:\.get|\[)|settings\.|process\.env|config\.|vault\.|prompt\s*\(|get_[A-Za-z0-9_]*\s*\(|load_[A-Za-z0-9_]*\s*\(|await\s+|\$\{|\$[A-Za-z_]|\{\{|<)[A-Za-z0-9][A-Za-z0-9_./+@:=!-]{3,}(?=[ \t]*(?:\#[^\r\n]*)?$)))'''
 
 
 [[rules]]
@@ -308,7 +311,7 @@ cwe = ["CWE-201"]
 severity = "medium"
 
 allowlist = []
-regex = '''(?ix)(?:\breturn\s+(?:jsonify|JSONResponse|Response)\s*\(\s*|\b(?:jsonify|JSONResponse|Response)\s*\(\s*|\b(?:res|response)(?:\s*\.\s*status\s*\([^()\r\n]{0,64}\))?\s*\.\s*(?:json|send)\s*\(\s*)(?:await\s+)?(?:current[_-]?)?(?:user|account|profile|customer|member)(?![A-Za-z0-9_])(?!\s*\.)(?:\s*\))?'''
+regex = '''(?ix)(?:(?:\breturn\s+(?:jsonify|JSONResponse|Response)\s*\(\s*|\b(?:jsonify|JSONResponse|Response)\s*\(\s*|\b(?:res|response)(?:\s*\.\s*status\s*\([^()\r\n]{0,64}\))?\s*\.\s*(?:json|send)\s*\(\s*)(?:await\s+)?(?:current[_-]?)?(?:user|account|profile|customer|member)(?![A-Za-z0-9_])(?!\s*\.)(?:\s*\))?|(?:\breturn\s+)?(?:jsonify|JSONResponse|Response)\s*\(\s*(?:await\s+)?(?:current[_-]?)?(?:user|account|profile|customer|member)\s*\.\s*(?:__dict__|to_dict\s*\(\s*\)|dict\s*\(\s*\)|model_dump\s*\(\s*\))\s*\))'''
 
 
 [[rules]]
@@ -369,23 +372,23 @@ regex = '''(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b'''
 # regex = '''(?x)(?<![\w.])(?:\+?82[-. \t]?(?:0)?(?:2|1[016789]|[3-6][1-5]|70)[-. \t]?\d{3,4}[-. \t]?\d{4}|0(?:2|1[016789]|[3-6][1-5]|70)[-. \t]?\d{3,4}[-. \t]?\d{4}|(?:15|16|18)\d{2}[-. \t]?\d{4}|(?:\+?1[-. \t]?)?\(?[2-9]\d{2}\)?[-. \t]?[2-9]\d{2}[-. \t]?\d{4}|(?:\+|00)[1-9]\d{0,2}[-. \t]?(?:\(?\d{1,4}\)?[-. \t]?){1,3}\d{3,4})(?![\w.])'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "PII-359-003"
-name = "RRN Hardcoding"
-desc = "코드 안에 실제 주민등록번호처럼 보이는 문자열이 존재하는 경우"
-owasp = ["PII"] 
-cwe = ["CWE-359"]
-severity = "high"
+# id = "PII-359-003"
+# name = "RRN Hardcoding"
+# desc = "코드 안에 실제 주민등록번호처럼 보이는 문자열이 존재하는 경우"
+# owasp = ["PII"] 
+# cwe = ["CWE-359"]
+# severity = "high"
 
 # 현재는 한국 주민등록번호 형식만 지원하며 생년월일 범위를 함께 확인한다.
 # 2월은 29·30일까지 허용한다 (연도별 윤년 판별을 하지 않는 의도적 과탐 허용,
 # 오탐은 2차 ML 필터에서 처리).
 # v0.3.1: TOML 문법 오류(여는 대괄호 누락) 및 미종결 문자 클래스 수정
-allowlist = [
-  '''^(?:0{6}|9{6})-?[1-4]\d{6}$'''
-]
-regex = '''(?x)\b\d{2}(?:(?:0[13578]|1[02])(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)(?:0[1-9]|[12]\d|30)|02(?:0[1-9]|1\d|2\d))-?[1-4]\d{6}\b'''
+# allowlist = [
+#   '''^(?:0{6}|9{6})-?[1-4]\d{6}$'''
+# ]
+# regex = '''(?x)\b\d{2}(?:(?:0[13578]|1[02])(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)(?:0[1-9]|[12]\d|30)|02(?:0[1-9]|1\d|2\d))-?[1-4]\d{6}\b'''
 
 
 [[rules]]
@@ -404,18 +407,18 @@ allowlist = [
 regex = '''(?ix)\b(?:print|console\.(?:log|error|warn|info|debug)|(?:logger|logging|log)\.(?:debug|info|warning|warn|error|critical|exception|fatal))\s*\((?=(?:[^;\r\n]|\r?\n[ \t]+){0,2048}?["']?(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:{personal_identifiers}|{personal_profile}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials}|{cryptographic_keys}|{generic_credentials})(?:[_-][A-Za-z0-9]+){0,2}(?![A-Za-z0-9])["']?)(?:[^;\r\n]|\r?\n[ \t]+){0,2048}\)'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "PII-598-001"
-name = "Insertion of Sensitive Information into GET Query String"
-desc = "GET 쿼리 문자열에 개인정보·인증정보 등 민감정보가 포함된 경우"
-owasp = ["PII"] 
-cwe = ["CWE-598"]
-severity = "high"
+# id = "PII-598-001"
+# name = "Insertion of Sensitive Information into GET Query String"
+# desc = "GET 쿼리 문자열에 개인정보·인증정보 등 민감정보가 포함된 경우"
+# owasp = ["PII"] 
+# cwe = ["CWE-598"]
+# severity = "high"
 
 # URL 문자열, params 객체, URLSearchParams로 GET 쿼리에 민감정보를 넣는 경우를 탐지한다.
-allowlist = []
-regex = '''(?ix)(?:(?:requests\.get|fetch|axios\.get|http\.get|urllib\.request\.urlopen)\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,2048}?(?:\?|&)["']?(?<![A-Za-z0-9])(?:{personal_identifiers}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials})(?![A-Za-z0-9])["']?\s*=|requests\.get\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,2048}?\bparams\s*=\s*\{[^};]{0,1024}?["']?(?<![A-Za-z0-9])(?:{personal_identifiers}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials})(?![A-Za-z0-9])["']?\s*:|axios\.get\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,2048}?\bparams\s*:\s*\{[^};]{0,1024}?["']?(?<![A-Za-z0-9])(?:{personal_identifiers}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials})(?![A-Za-z0-9])["']?\s*(?::|[,}])|(?:(?:new\s+)?URLSearchParams|(?:urllib\.parse\.)?urlencode)\s*\(\s*\{[^};]{0,1024}?["']?(?<![A-Za-z0-9])(?:{personal_identifiers}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials})(?![A-Za-z0-9])["']?\s*(?::|[,}]))'''
+# allowlist = []
+# regex = '''(?ix)(?:(?:requests\.get|fetch|axios\.get|http\.get|urllib\.request\.urlopen)\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,2048}?(?:\?|&)["']?(?<![A-Za-z0-9])(?:{personal_identifiers}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials})(?![A-Za-z0-9])["']?\s*=|requests\.get\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,2048}?\bparams\s*=\s*\{[^};]{0,1024}?["']?(?<![A-Za-z0-9])(?:{personal_identifiers}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials})(?![A-Za-z0-9])["']?\s*:|axios\.get\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,2048}?\bparams\s*:\s*\{[^};]{0,1024}?["']?(?<![A-Za-z0-9])(?:{personal_identifiers}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials})(?![A-Za-z0-9])["']?\s*(?::|[,}])|(?:(?:new\s+)?URLSearchParams|(?:urllib\.parse\.)?urlencode)\s*\(\s*\{[^};]{0,1024}?["']?(?<![A-Za-z0-9])(?:{personal_identifiers}|{financial_information}|{passwords}|{generic_secrets}|{api_keys}|{provider_api_keys}|{tokens}|{provider_tokens}|{cloud_credentials})(?![A-Za-z0-9])["']?\s*(?::|[,}]))'''
 
 
 ###################################
@@ -500,17 +503,17 @@ allowlist = []
 regex = '''(?isx)\b(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*request\.(?:files|FILES)\.getlist\s*\([^)]+\)|[A-Za-z_][A-Za-z0-9_]*\s*:\s*(?:list|List)\s*\[\s*UploadFile\s*\])(?!(?:[\s\S]{0,800})\b(?:len\s*\([^)]*\)\s*(?:>|>=)|max[_-]?(?:files?|file[_-]?count)|file[_-]?count[_-]?limit)\b)'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "A02-862-001"
-name = "Unprotected Sensitive Express Route"
-desc = "관리자 또는 사용자 소유 자원 경로의 Express 계열 라우트 선언에 인가 미들웨어가 보이지 않는 경우를 휴리스틱으로 탐지"
-owasp = ["A02"]
-cwe = ["CWE-862"]
-severity = "medium"
+# id = "A02-862-001"
+# name = "Unprotected Sensitive Express Route"
+# desc = "관리자 또는 사용자 소유 자원 경로의 Express 계열 라우트 선언에 인가 미들웨어가 보이지 않는 경우를 휴리스틱으로 탐지"
+# owasp = ["A02"]
+# cwe = ["CWE-862"]
+# severity = "medium"
 
-allowlist = []
-regex = '''(?ix)\b(?:app|router|server)\s*\.\s*(?:get|post|put|patch|delete|all)\s*\(\s*["'](?:/(?:admin|management|internal)(?:/[^"'\r\n]*)?|/(?:users?|accounts?|profiles?)/(?:me|current|:[A-Za-z_$][A-Za-z0-9_$]*|\{[A-Za-z_$][A-Za-z0-9_$]*\}|<[^>"'\r\n]+>)(?:/[^"'\r\n]*)?)["']\s*,(?![^\r\n]{0,800}\b(?:auth(?:enticate|orize|entication)?(?:[_-]?(?:middleware|guard))?|authenticate[_-]?token|require[_-]?(?:auth|login|user|role)|ensure[_-]?(?:auth|authenticated|login)|is[_-]?(?:authenticated|authorized|admin)|admin[_-]?only|jwt[_-]?(?:required|auth)|verify[_-]?(?:token|jwt|auth)|check[_-]?(?:permission|auth|role)|protect(?:ed)?|permit)\b\s*(?:\(|,))[^\r\n]*'''
+# allowlist = []
+# regex = '''(?ix)\b(?:app|router|server)\s*\.\s*(?:get|post|put|patch|delete|all)\s*\(\s*["'](?:/(?:admin|management|internal)(?:/[^"'\r\n]*)?|/(?:users?|accounts?|profiles?)/(?:me|current|:[A-Za-z_$][A-Za-z0-9_$]*|\{[A-Za-z_$][A-Za-z0-9_$]*\}|<[^>"'\r\n]+>)(?:/[^"'\r\n]*)?)["']\s*,(?![^\r\n]{0,800}\b(?:auth(?:enticate|orize|entication)?(?:[_-]?(?:middleware|guard))?|authenticate[_-]?token|require[_-]?(?:auth|login|user|role)|ensure[_-]?(?:auth|authenticated|login)|is[_-]?(?:authenticated|authorized|admin)|admin[_-]?only|jwt[_-]?(?:required|auth)|verify[_-]?(?:token|jwt|auth)|check[_-]?(?:permission|auth|role)|protect(?:ed)?|permit)\b\s*(?:\(|,))[^\r\n]*'''
 
 
 [[rules]]
@@ -536,7 +539,7 @@ cwe = ["CWE-862"]
 severity = "high"
 
 allowlist = []
-regex = '''(?isx)\bclass\s+(?=[A-Za-z0-9_]*(?:Admin|User|Account|Profile|Payment|Billing)[A-Za-z0-9_]*\s*\()[A-Za-z_][A-Za-z0-9_]*\s*\([^)]*\)\s*:\s*(?:(?!\n[ \t]*class\s).){0,1600}?(?:\bpermission_classes\s*=\s*(?:\[[^\]]*\bAllowAny\b[^\]]*\]|\([^)]*\bAllowAny\b[^)]*\)|\[\s*\]|\(\s*\))|@\s*permission_classes\s*\(\s*[\[(][^\])]*\bAllowAny\b[^\])]*[\])])'''
+regex = '''(?isx)(?:\bclass\s+(?=[A-Za-z0-9_]*(?:Admin|User|Account|Profile|Payment|Billing)[A-Za-z0-9_]*\s*\()[A-Za-z_][A-Za-z0-9_]*\s*\([^)]*\)\s*:\s*(?:(?!\n[ \t]*class\s).){0,1600}?(?:\bpermission_classes\s*=\s*(?:\[[^\]]*\bAllowAny\b[^\]]*\]|\([^)]*\bAllowAny\b[^)]*\)|\[\s*\]|\(\s*\))|@\s*permission_classes\s*\(\s*[\[(][^\])]*\bAllowAny\b[^\])]*[\])])|@\s*permission_classes\s*\(\s*(?:\[\s*(?:AllowAny\s*)?\]|\(\s*(?:AllowAny\s*)?\))\s*\)[^\r\n]*\r?\n(?:[ \t]*@[^\r\n]+\r?\n){0,8}[ \t]*(?:async[ \t]+)?def[ \t]+[A-Za-z0-9_]*(?:Admin|User|Account|Profile|Payment|Billing)[A-Za-z0-9_]*[ \t]*\()'''
 
 
 [[rules]]
@@ -565,17 +568,17 @@ allowlist = []
 regex = '''(?ix)(?:\bssl\s*\.\s*_create_unverified_context\s*\(|\b[A-Za-z_][A-Za-z0-9_]*\s*\.\s*check_hostname\s*=\s*false\b|\b[A-Za-z_][A-Za-z0-9_]*\s*\.\s*verify_mode\s*=\s*(?:ssl\s*\.\s*)?CERT_NONE\b|\bcert_reqs\s*=\s*(?:ssl\s*\.\s*)?["']?CERT_NONE["']?|\bassert_hostname\s*=\s*false\b|\b[A-Za-z_][A-Za-z0-9_]*\s*\.\s*set_verify\s*\([^\r\n]{0,300}\b(?:SSL\s*\.\s*)?VERIFY_NONE\b)'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "A02-295-003"
-name = "Global Node TLS Verification Disabled"
-desc = "NODE_TLS_REJECT_UNAUTHORIZED 값을 0으로 설정하여 Node.js 프로세스 전체의 TLS 인증서 검증을 비활성화한 경우"
-owasp = ["A02"]
-cwe = ["CWE-295"]
-severity = "high"
+# id = "A02-295-003"
+# name = "Global Node TLS Verification Disabled"
+# desc = "NODE_TLS_REJECT_UNAUTHORIZED 값을 0으로 설정하여 Node.js 프로세스 전체의 TLS 인증서 검증을 비활성화한 경우"
+# owasp = ["A02"]
+# cwe = ["CWE-295"]
+# severity = "high"
 
-allowlist = []
-regex = '''(?ix)(?:\bprocess\s*\.\s*env\s*\.\s*NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0["']?|\bNODE_TLS_REJECT_UNAUTHORIZED\s*[:=]\s*["']?0["']?)'''
+# allowlist = []
+# regex = '''(?ix)(?:\bprocess\s*\.\s*env\s*\.\s*NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0["']?|\bNODE_TLS_REJECT_UNAUTHORIZED\s*[:=]\s*["']?0["']?)'''
 
 
 ################################
@@ -735,22 +738,22 @@ allowlist = [
 regex = '''(?ix)\b(?:redirect|HttpResponseRedirect|render_template_string)\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|request\.(?:json|data)|request\.get_json\s*\(\s*\)(?:\s*\.get\s*\([^)\r\n]+\))?)'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "A05-20-002"
-name = "Direct JavaScript Request Input to Sensitive Sink"
-desc = "JavaScript 웹 요청 입력값을 별도의 검증·정제 없이 리다이렉트 함수에 직접 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-20"]
-severity = "medium"
+# id = "A05-20-002"
+# name = "Direct JavaScript Request Input to Sensitive Sink"
+# desc = "JavaScript 웹 요청 입력값을 별도의 검증·정제 없이 리다이렉트 함수에 직접 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-20"]
+# severity = "medium"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:url|path|file|input|value|name))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:url|path|file|input|value|name))?["']\s*\])'''
-]
-regex = '''(?ix)\b(?:res|response)\s*\.\s*redirect\s*\(\s*(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])'''
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:url|path|file|input|value|name))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:url|path|file|input|value|name))?["']\s*\])'''
+# ]
+# regex = '''(?ix)\b(?:res|response)\s*\.\s*redirect\s*\(\s*(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])'''
 
 
 [[rules]]
@@ -810,42 +813,42 @@ allowlist = [
 regex = '''(?ix)\bsubprocess\.(?:run|call|Popen|check_call|check_output)\s*\((?=[^;]{0,1200}\bshell\s*=\s*(?:true|1)\b)(?=[^;]{0,1200}(?:\+|%|\.format\s*\(|(?:fr|rf|f)["'][^"'\r\n]*\{|request\.|input\s*\(|sys\.argv|os\.environ|(?:cmd|command|shell[_-]?(?:cmd|command)|user[_-]?input|payload)\b))[^;]{0,1200}\)'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "A05-78-003"
-name = "Dynamic JavaScript Shell Command Execution"
-desc = "문자열 결합, 템플릿 리터럴 또는 요청 입력으로 구성된 명령을 exec 또는 execSync로 실행하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-77", "CWE-78"]
-severity = "high"
+# id = "A05-78-003"
+# name = "Dynamic JavaScript Shell Command Execution"
+# desc = "문자열 결합, 템플릿 리터럴 또는 요청 입력으로 구성된 명령을 exec 또는 execSync로 실행하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-77", "CWE-78"]
+# severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)(?:\(\s*|\$\{\s*|\{\s*)(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?\b''',
-  '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?["']\s*\])'''
-]
-regex = '''(?ix)\b(?:(?:child_process|cp)\s*\.\s*)?(?:exec|execSync)\s*\(\s*(?:`[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`|["'][^"'\r\n]*["']\s*\+|(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|process\.(?:argv|env)|(?:cmd|command|shellCommand|userInput|payload)\b)'''
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)(?:\(\s*|\$\{\s*|\{\s*)(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?\b''',
+#   '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?["']\s*\])'''
+# ]
+# regex = '''(?ix)\b(?:(?:child_process|cp)\s*\.\s*)?(?:exec|execSync)\s*\(\s*(?:`[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`|["'][^"'\r\n]*["']\s*\+|(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|process\.(?:argv|env)|(?:cmd|command|shellCommand|userInput|payload)\b)'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "A05-78-004"
-name = "Shell Enabled JavaScript Process Spawn"
-desc = "동적으로 구성된 명령을 shell: true가 설정된 spawn 또는 spawnSync로 실행하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-77", "CWE-78"]
-severity = "high"
+# id = "A05-78-004"
+# name = "Shell Enabled JavaScript Process Spawn"
+# desc = "동적으로 구성된 명령을 shell: true가 설정된 spawn 또는 spawnSync로 실행하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-77", "CWE-78"]
+# severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)(?:\(\s*|\$\{\s*|\{\s*)(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?\b''',
-  '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?["']\s*\])'''
-]
-regex = '''(?ix)\b(?:(?:child_process|cp)\s*\.\s*)?(?:spawn|spawnSync)\s*\((?=[^;]{0,1200}\bshell\s*:\s*true\b)(?=[^;]{0,1200}(?:\+|`[^`\r\n]*\$\{|(?:req|request)\.(?:query|body|params)|process\.(?:argv|env)|(?:cmd|command|shellCommand|userInput|payload)\b))[^;]{0,1200}\)'''
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)(?:\(\s*|\$\{\s*|\{\s*)(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?\b''',
+#   '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:cmd|command|host|input|payload|value))?["']\s*\])'''
+# ]
+# regex = '''(?ix)\b(?:(?:child_process|cp)\s*\.\s*)?(?:spawn|spawnSync)\s*\((?=[^;]{0,1200}\bshell\s*:\s*true\b)(?=[^;]{0,1200}(?:\+|`[^`\r\n]*\$\{|(?:req|request)\.(?:query|body|params)|process\.(?:argv|env)|(?:cmd|command|shellCommand|userInput|payload)\b))[^;]{0,1200}\)'''
 
 
 
@@ -868,23 +871,23 @@ allowlist = [
 regex = '''(?ix)\b(?:(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)*)(?:execute|executemany)\s*\(\s*(?:(?:fr|rf|f)["'][^"'\r\n]*\b(?:select|insert|update|delete|replace|with|merge|create|alter|drop)\b[^"'\r\n]*\{[^}\r\n]+\}[^"'\r\n]*["']|(?:r|b|u){0,2}["'][^"'\r\n]*\b(?:select|insert|update|delete|replace|with|merge|create|alter|drop)\b[^"'\r\n]*["']\s*(?:\+|%|\.format\s*\())'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "A05-89-002"
-name = "Dynamic JavaScript SQL Query Construction"
-desc = "SQL 문자열을 템플릿 리터럴이나 문자열 결합으로 구성해 JavaScript 데이터베이스 질의 함수에 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-89"]
-severity = "high"
+# id = "A05-89-002"
+# name = "Dynamic JavaScript SQL Query Construction"
+# desc = "SQL 문자열을 템플릿 리터럴이나 문자열 결합으로 구성해 JavaScript 데이터베이스 질의 함수에 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-89"]
+# severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)(?:\$\{\s*|\+\s*)(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:id|query|sql|input|value|param))?\b''',
-  '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:id|query|sql|input|value|param))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:id|query|sql|input|value|param))?["']\s*\])'''
-]
-regex = '''(?ix)(?:\b(?:db|pool|connection|client|sequelize|knex|prisma)\s*\.\s*(?:query|execute|raw|\$queryRawUnsafe|\$executeRawUnsafe)\s*\(\s*(?:`[^`\r\n]*\b(?:select|insert|update|delete|replace|with|merge|create|alter|drop)\b[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`|["'][^"'\r\n]*\b(?:select|insert|update|delete|replace|with|merge|create|alter|drop)\b[^"'\r\n]*["']\s*\+)|\bprisma\s*\.\s*\$(?:queryRaw|executeRaw)\s*`[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`)'''
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)(?:\$\{\s*|\+\s*)(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:id|query|sql|input|value|param))?\b''',
+#   '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:id|query|sql|input|value|param))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:id|query|sql|input|value|param))?["']\s*\])'''
+# ]
+# regex = '''(?ix)(?:\b(?:db|pool|connection|client|sequelize|knex|prisma)\s*\.\s*(?:query|execute|raw|\$queryRawUnsafe|\$executeRawUnsafe)\s*\(\s*(?:`[^`\r\n]*\b(?:select|insert|update|delete|replace|with|merge|create|alter|drop)\b[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`|["'][^"'\r\n]*\b(?:select|insert|update|delete|replace|with|merge|create|alter|drop)\b[^"'\r\n]*["']\s*\+)|\bprisma\s*\.\s*\$(?:queryRaw|executeRaw)\s*`[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`)'''
 
 
 [[rules]]
@@ -906,23 +909,23 @@ allowlist = [
 regex = '''(?ix)\b(?:eval|exec|compile)\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|request\.(?:json|data)|request\.get_json\s*\(\s*\)(?:\s*\.get\s*\([^)\r\n]+\))?|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\]|(?:user[_-]?input|code|source|script|expression|expr|payload)\b)'''
 
 
-[[rules]]
+# [[rules]]
 
-id = "A05-94-002"
-name = "Dynamic JavaScript Code Evaluation"
-desc = "요청 입력값 또는 코드로 추정되는 변수를 JavaScript 동적 코드 실행 API에 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-94"]
-severity = "high"
+# id = "A05-94-002"
+# name = "Dynamic JavaScript Code Evaluation"
+# desc = "요청 입력값 또는 코드로 추정되는 변수를 JavaScript 동적 코드 실행 API에 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-94"]
+# severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)\(\s*(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:code|source|script|expression|expr|payload|input|value))?\b''',
-  '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:code|source|script|expression|expr|payload|input|value))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:code|source|script|expression|expr|payload|input|value))?["']\s*\])'''
-]
-regex = '''(?ix)(?:\b(?:eval|setTimeout|setInterval)\s*\(\s*(?:(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:userInput|code|source|script|expression|expr|payload)\b)|\b(?:new\s+)?Function\s*\([^;\r\n]{0,500}(?:(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:userInput|code|source|script|expression|expr|payload)\b)[^;\r\n]{0,500}\)|\b(?:vm\s*\.\s*)?(?:runInThisContext|runInNewContext|runInContext|compileFunction)\s*\(\s*(?:(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:userInput|code|source|script|expression|expr|payload)\b)|\bnew\s+(?:vm\s*\.\s*)?Script\s*\(\s*(?:(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:userInput|code|source|script|expression|expr|payload)\b))'''
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)\(\s*(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:code|source|script|expression|expr|payload|input|value))?\b''',
+#   '''(?ix)\b(?:req|request)\.(?:query|body|params)(?:\.(?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:code|source|script|expression|expr|payload|input|value))?\b|\[\s*["'](?:dummy|example|sample|placeholder|mock|fixture|test)(?:[_-]?(?:code|source|script|expression|expr|payload|input|value))?["']\s*\])'''
+# ]
+# regex = '''(?ix)(?:\b(?:eval|setTimeout|setInterval)\s*\(\s*(?:(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:userInput|code|source|script|expression|expr|payload)\b)|\b(?:new\s+)?Function\s*\([^;\r\n]{0,500}(?:(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:userInput|code|source|script|expression|expr|payload)\b)[^;\r\n]{0,500}\)|\b(?:vm\s*\.\s*)?(?:runInThisContext|runInNewContext|runInContext|compileFunction)\s*\(\s*(?:(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:userInput|code|source|script|expression|expr|payload)\b)|\bnew\s+(?:vm\s*\.\s*)?Script\s*\(\s*(?:(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:userInput|code|source|script|expression|expr|payload)\b))'''
 
 
 ##########################
@@ -930,64 +933,63 @@ regex = '''(?ix)(?:\b(?:eval|setTimeout|setInterval)\s*\(\s*(?:(?:req|request)\.
 ##########################
 
 
-[[rules]]
-id = "A05-79-001"
-name = "Dynamic DOM HTML Assignment"
-desc = "사용자 입력 또는 외부 데이터를 innerHTML이나 outerHTML에 직접 대입하여 XSS가 발생할 수 있는 경우"
-owasp = ["A05"]
-cwe = ["CWE-79"]
-severity = "high"
+# [[rules]]
+# id = "A05-79-001"
+# name = "Dynamic DOM HTML Assignment"
+# desc = "사용자 입력 또는 외부 데이터를 innerHTML이나 outerHTML에 직접 대입하여 XSS가 발생할 수 있는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-79"]
+# severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\.(?:innerHTML|outerHTML)\s*=\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data)\b[^\r\n]*$'''
-]
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\.(?:innerHTML|outerHTML)\s*=\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data)\b[^\r\n]*$'''
+# ]
 
-regex = '''(?ix)\b[A-Za-z_$][A-Za-z0-9_$]*(?:\s*(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\]))*\s*\.\s*(?:innerHTML|outerHTML)\s*=\s*(?:(?:req|request)\.(?:body|query|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|location\.(?:hash|search|href)|document\.(?:URL|documentURI)|(?:user[_-]?input|user[_-]?content|html|content|message|payload|response(?:\.data)?|external[_-]?data)\b|`[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`|["'][^"'\r\n]*["']\s*\+)'''
-
-
-[[rules]]
-id = "A05-79-002"
-name = "Dynamic HTML Written Through Browser APIs"
-desc = "사용자 입력 또는 외부 데이터를 insertAdjacentHTML, document.write, document.writeln에 직접 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-79"]
-severity = "high"
-
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)^\s*(?:[^\r\n]*\.insertAdjacentHTML\s*\(\s*[^,\r\n]+,\s*|document\.(?:write|writeln)\s*\(\s*)(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data)\b[^\r\n]*$'''
-]
-
-regex = '''(?ix)(?:\b[A-Za-z_$][A-Za-z0-9_$]*(?:\s*(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\]))*\.insertAdjacentHTML\s*\(\s*[^,\r\n]+,\s*|\bdocument\.(?:write|writeln)\s*\(\s*)(?:(?:req|request)\.(?:body|query|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|location\.(?:hash|search|href)|document\.(?:URL|documentURI)|(?:user[_-]?input|user[_-]?content|html|content|message|payload|response(?:\.data)?|external[_-]?data)\b|`[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`|["'][^"'\r\n]*["']\s*\+)'''
+# regex = '''(?ix)\b[A-Za-z_$][A-Za-z0-9_$]*(?:\s*(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\]))*\s*\.\s*(?:innerHTML|outerHTML)\s*=\s*(?:(?:req|request)\.(?:body|query|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|location\.(?:hash|search|href)|document\.(?:URL|documentURI)|(?:user[_-]?input|user[_-]?content|html|content|message|payload|response(?:\.data)?|external[_-]?data)\b|`[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`|["'][^"'\r\n]*["']\s*\+)'''
 
 
-[[rules]]
-id = "A05-79-003"
-name = "Unsafe React HTML Rendering"
-desc = "검증되지 않은 값을 React dangerouslySetInnerHTML의 __html 속성에 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-79"]
-severity = "high"
+# [[rules]]
+# id = "A05-79-002"
+# name = "Dynamic HTML Written Through Browser APIs"
+# desc = "사용자 입력 또는 외부 데이터를 insertAdjacentHTML, document.write, document.writeln에 직접 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-79"]
+# severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\bdangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data)\b[^\r\n]*$'''
-]
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)^\s*(?:[^\r\n]*\.insertAdjacentHTML\s*\(\s*[^,\r\n]+,\s*|document\.(?:write|writeln)\s*\(\s*)(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data)\b[^\r\n]*$'''
+# ]
 
-regex = '''(?ix)\bdangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:\s*(?:(?:req|request)\.(?:body|query|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:user[_-]?input|user[_-]?content|html|content|message|payload|response(?:\.data)?|external[_-]?data)\b)[^}\r\n]*\}\s*\}'''
+# regex = '''(?ix)(?:\b[A-Za-z_$][A-Za-z0-9_$]*(?:\s*(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\]))*\.insertAdjacentHTML\s*\(\s*[^,\r\n]+,\s*|\bdocument\.(?:write|writeln)\s*\(\s*)(?:(?:req|request)\.(?:body|query|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|location\.(?:hash|search|href)|document\.(?:URL|documentURI)|(?:user[_-]?input|user[_-]?content|html|content|message|payload|response(?:\.data)?|external[_-]?data)\b|`[^`\r\n]*\$\{[^}\r\n]+\}[^`\r\n]*`|["'][^"'\r\n]*["']\s*\+)'''
 
+
+# [[rules]]
+# id = "A05-79-003"
+# name = "Unsafe React HTML Rendering"
+# desc = "검증되지 않은 값을 React dangerouslySetInnerHTML의 __html 속성에 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-79"]
+# severity = "high"
+
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\bdangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data)\b[^\r\n]*$'''
+# ]
+
+# regex = '''(?ix)\bdangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:\s*(?:(?:req|request)\.(?:body|query|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:user[_-]?input|user[_-]?content|html|content|message|payload|response(?:\.data)?|external[_-]?data)\b)[^}\r\n]*\}\s*\}'''
 
 [[rules]]
 id = "A05-79-004"
-name = "Dynamic HTML in JavaScript HTTP Response"
-desc = "동적으로 구성한 HTML을 Express 응답에 직접 전송하여 XSS가 발생할 수 있는 경우"
+name = "Dynamic HTML in Python HTTP Response"
+desc = "위험한 동적 렌더링 함수를 사용하지 않고 요청값을 HTML 문자열에 결합하여 HttpResponse 또는 HTMLResponse로 직접 반환하는 경우"
 owasp = ["A05"]
 cwe = ["CWE-79"]
 severity = "high"
@@ -995,17 +997,22 @@ severity = "high"
 path_allowlist = [
   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
 ]
+
 allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:res|response)\.(?:send|write|end)\s*\([^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data|name)\b[^\r\n]*$'''
+  '''(?isx)^\s*[^\r\n]*\b(?:HttpResponse|HTMLResponse)\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data|name)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)\s*$'''
 ]
 
-regex = '''(?ix)\b(?:res|response)\.(?:send|write|end)\s*\(\s*(?:`(?=[^`\r\n]*<[^>\r\n]+>)(?=[^`\r\n]*\$\{)[^`\r\n]*`|["'](?=[^"'\r\n]*<[^>\r\n]+>)[^"'\r\n]*["']\s*\+\s*(?:(?:req|request)\.(?:body|query|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:user[_-]?input|user[_-]?content|name|html|content|message|payload|external[_-]?data)\b))'''
+regex = '''(?isx)(?:\b(?:HttpResponse|HTMLResponse)\s*\(
+(?!(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\b(?:render_template_string|mark_safe|Markup)\s*\()
+(?=(?:[^()]|\([^()]*\)){0,1200}<[^>\r\n]+>)
+(?=(?:(?:[^()]|\([^()]*\)){0,1200}|[^()]{0,1200}\([^()]{0,1200})\brequest\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?)
+(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)|\breturn\s+(?=(?:[^\r\n]|\r?\n[ \t]+){0,1200}<[^>\r\n]+>)(?=(?:[^\r\n]|\r?\n[ \t]+){0,1200}\brequest\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?)(?:[^\r\n]|\r?\n[ \t]+){1,1200})'''
 
 
 [[rules]]
 id = "A05-79-005"
 name = "Unsafe Dynamic HTML Rendering in Python"
-desc = "Flask 또는 Django에서 사용자 입력이나 외부 데이터를 동적 HTML 렌더링 함수에 직접 전달하는 경우"
+desc = "Flask 또는 Django에서 사용자 입력이나 외부 데이터를 동적 템플릿 렌더링 또는 HTML 이스케이프 우회 함수에 전달하는 경우"
 owasp = ["A05"]
 cwe = ["CWE-79"]
 severity = "high"
@@ -1013,11 +1020,20 @@ severity = "high"
 path_allowlist = [
   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
 ]
+
 allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:render_template_string|mark_safe|Markup)\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data)\b[^\r\n]*$'''
+  '''(?isx)^\s*[^\r\n]*\b(?:render_template_string|mark_safe|Markup)\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:html|content|input|payload|data|name)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)\s*$'''
 ]
 
-regex = '''(?ix)\b(?:render_template_string|mark_safe|Markup)\s*\(\s*(?:request\.(?:args|form|values)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|request\.(?:data|json)|request\.get_json\s*\(\s*\)(?:\s*\.get\s*\([^)\r\n]+\))?|(?:user[_-]?input|user[_-]?content|html|content|message|payload|external[_-]?data)\b)'''
+regex = '''(?isx)\b(?:render_template_string|mark_safe|Markup)\s*\(
+(?=(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}(?:
+\brequest\s*\.\s*(?:args|GET|query_params|form|values|json|data|body)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?
+|
+\brequest\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?
+|
+\b(?:user[_-]?input|user[_-]?content|html|content|message|payload|external[_-]?data)\b
+))
+(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)'''
 
 
 [[rules]]
@@ -1038,28 +1054,29 @@ allowlist = [
 regex = '''(?ix)\b(?:(?:pickle|dill|cloudpickle|marshal)\.(?:loads|load)|joblib\.load)\s*\(\s*(?:request\.(?:data|files|stream|body)|request\.get_data\s*\([^)\r\n]*\)|request\.get_json\s*\([^)\r\n]*\)|input\s*\([^)\r\n]*\)|sys\.stdin(?:\.buffer)?|(?:requests|httpx)\.(?:get|post)\s*\([^)\r\n]*\)\.(?:content|raw)|(?:response|resp)\.(?:content|raw))'''
 
 
+# [[rules]]
+# id = "A05-502-002"
+# name = "Deserialization of Suspicious Python Data"
+# desc = "외부 데이터로 추정되는 변수나 파일을 위험한 Python 역직렬화 함수에 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-502"]
+# severity = "high"
+
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:(?:pickle|dill|cloudpickle|marshal)\.(?:loads|load)|joblib\.load)\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:data|payload|blob|serialized|content|file|stream|body|yaml)\b[^\r\n]*$'''
+# ]
+
+# regex = '''(?ix)\b(?:(?:pickle|dill|cloudpickle|marshal)\.(?:loads|load)|joblib\.load)\s*\(\s*(?:untrusted[_-]?(?:data|payload|file)|user[_-]?(?:data|payload|file)|serialized[_-]?(?:data|object|payload)|payload|blob|body|content|uploaded[_-]?file|input[_-]?file|data[_-]?stream)\b'''
+
+
 [[rules]]
-id = "A05-502-002"
-name = "Deserialization of Suspicious Python Data"
-desc = "외부 데이터로 추정되는 변수나 파일을 위험한 Python 역직렬화 함수에 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-502"]
-severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:(?:pickle|dill|cloudpickle|marshal)\.(?:loads|load)|joblib\.load)\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:data|payload|blob|serialized|content|file|stream|body|yaml)\b[^\r\n]*$'''
-]
-
-regex = '''(?ix)\b(?:(?:pickle|dill|cloudpickle|marshal)\.(?:loads|load)|joblib\.load)\s*\(\s*(?:untrusted[_-]?(?:data|payload|file)|user[_-]?(?:data|payload|file)|serialized[_-]?(?:data|object|payload)|payload|blob|body|content|uploaded[_-]?file|input[_-]?file|data[_-]?stream)\b'''
-
-
-[[rules]]
 id = "A05-502-003"
 name = "Unsafe YAML Deserialization"
-desc = "신뢰할 수 없는 데이터를 SafeLoader 없이 yaml.load 또는 yaml.load_all로 역직렬화하는 경우"
+desc = "외부 YAML을 SafeLoader 없이 yaml.load·yaml.load_all로 읽거나 yaml.unsafe_load 계열로 역직렬화하는 경우"
 owasp = ["A05"]
 cwe = ["CWE-502"]
 severity = "high"
@@ -1067,30 +1084,39 @@ severity = "high"
 path_allowlist = [
   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
 ]
+
 allowlist = [
-  '''(?ix)^\s*[^\r\n]*\byaml\.(?:load|load_all)\s*\([^\r\n]*\bLoader\s*=\s*(?:yaml\.)?(?:SafeLoader|CSafeLoader)\b[^\r\n]*$''',
-  '''(?ix)^\s*[^\r\n]*\byaml\.(?:load|load_all)\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:data|payload|blob|serialized|content|file|stream|body|yaml)\b[^\r\n]*$'''
+  '''(?isx)^\s*[^\r\n]*\byaml\s*\.\s*(?:load|load_all)\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\bLoader\s*=\s*(?:yaml\s*\.\s*)?(?:SafeLoader|CSafeLoader)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)\s*$''',
+
+  '''(?isx)^\s*[^\r\n]*\byaml\s*\.\s*(?:load|load_all|unsafe_load|unsafe_load_all)\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:data|payload|blob|serialized|content|file|stream|body|yaml|config)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)\s*$'''
 ]
 
-regex = '''(?ix)\byaml\.(?:load|load_all)\s*\((?![^\r\n)]*\bLoader\s*=\s*(?:yaml\.)?(?:SafeLoader|CSafeLoader)\b)[^\r\n)]*(?:request\.|input\s*\(|sys\.stdin|untrusted[_-]?(?:data|payload|file)|user[_-]?(?:data|payload|file)|payload|body|content|uploaded[_-]?file|input[_-]?file|data[_-]?stream)\b[^\r\n)]*\)'''
+regex = '''(?isx)(?:
+\byaml\s*\.\s*unsafe_load(?:_all)?\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)
+|
+\byaml\s*\.\s*(?:load|load_all)\s*\(
+(?!(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\bLoader\s*=\s*(?:yaml\s*\.\s*)?(?:SafeLoader|CSafeLoader)\b)
+(?=(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}(?:\brequest\s*\.|\bresponse\s*\.|\binput\s*\(|\bsys\s*\.\s*stdin\b|\buntrusted[_-]?(?:data|payload|file)\b|\buser[_-]?(?:data|payload|file)\b|\bpayload\b|\bbody\b|\bcontent\b|\buploaded[_-]?file\b|\binput[_-]?file\b|\bdata[_-]?stream\b))
+(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)
+)'''
 
 
-[[rules]]
-id = "A05-502-004"
-name = "Deserialization of Untrusted JavaScript Data"
-desc = "JavaScript 요청 데이터나 외부 입력을 deserialize 또는 unserialize 함수에 직접 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-502"]
-severity = "critical"
+# [[rules]]
+# id = "A05-502-004"
+# name = "Deserialization of Untrusted JavaScript Data"
+# desc = "JavaScript 요청 데이터나 외부 입력을 deserialize 또는 unserialize 함수에 직접 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-502"]
+# severity = "critical"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:[A-Za-z_$][A-Za-z0-9_$]*\.)?(?:deserialize|unserialize)\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:data|payload|blob|serialized|content|file|stream|body|yaml)\b[^\r\n]*$'''
-]
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:[A-Za-z_$][A-Za-z0-9_$]*\.)?(?:deserialize|unserialize)\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:data|payload|blob|serialized|content|file|stream|body|yaml)\b[^\r\n]*$'''
+# ]
 
-regex = '''(?ix)\b(?:[A-Za-z_$][A-Za-z0-9_$]*\.)?(?:deserialize|unserialize)\s*\(\s*(?:req\.(?:body|query|params|rawBody)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])?|request\.(?:body|data)|(?:user[_-]?(?:data|payload)|untrusted[_-]?(?:data|payload)|serialized[_-]?(?:data|object|payload)|payload|body|content|blob)\b)'''
+# regex = '''(?ix)\b(?:[A-Za-z_$][A-Za-z0-9_$]*\.)?(?:deserialize|unserialize)\s*\(\s*(?:req\.(?:body|query|params|rawBody)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])?|request\.(?:body|data)|(?:user[_-]?(?:data|payload)|untrusted[_-]?(?:data|payload)|serialized[_-]?(?:data|object|payload)|payload|body|content|blob)\b)'''
 
 
 [[rules]]
@@ -1126,49 +1152,50 @@ allowlist = [
   '''(?ix)^\s*[^\r\n]*\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b[^\r\n]*$'''
 ]
 
-regex = '''(?ix)\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?:user[_-]?(?:url|uri)|target[_-]?(?:url|uri)|remote[_-]?(?:url|uri)|callback[_-]?url|webhook[_-]?url|redirect[_-]?url|next[_-]?url|image[_-]?url|avatar[_-]?url|resource[_-]?url|fetch[_-]?url)\b'''
+regex = '''(?ix)(?:\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?:user[_-]?(?:url|uri)|target[_-]?(?:url|uri)|remote[_-]?(?:url|uri)|callback[_-]?url|webhook[_-]?url|redirect[_-]?url|next[_-]?url|image[_-]?url|avatar[_-]?url|resource[_-]?url|fetch[_-]?url)\b|\b(?P<vibesafe_plain_url>url|uri)\s*=\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|request\.(?:json|data)|request\.get_json\s*\(\s*\)(?:\s*\.get\s*\([^)\r\n]+\)|\s*\[[^\]\r\n]+\])?)[\s\S]{0,1200}?\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?P=vibesafe_plain_url)\b)'''
+
+
+# [[rules]]
+# id = "A05-918-003"
+# name = "Direct JavaScript Request Input Used as URL"
+# desc = "Express 요청에서 가져온 URL을 fetch, axios, got, request 또는 Node HTTP 클라이언트에 직접 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-918"]
+# severity = "high"
+
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b[^\r\n]*$'''
+# ]
+
+# regex = '''(?ix)\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])'''
+
+
+# [[rules]]
+# id = "A05-918-004"
+# name = "Suspicious JavaScript URL Variable Used in Server Request"
+# desc = "사용자 제어 가능성이 높은 URL 변수를 JavaScript 서버 측 HTTP 요청 함수에 직접 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-918"]
+# severity = "medium"
+
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b[^\r\n]*$'''
+# ]
+
+# regex = '''(?ix)\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:user(?:Url|URL|Uri|URI)|target(?:Url|URL|Uri|URI)|remote(?:Url|URL|Uri|URI)|callback(?:Url|URL)|webhook(?:Url|URL)|redirect(?:Url|URL)|next(?:Url|URL)|image(?:Url|URL)|avatar(?:Url|URL)|resource(?:Url|URL)|fetch(?:Url|URL))\b'''
 
 
 [[rules]]
-id = "A05-918-003"
-name = "Direct JavaScript Request Input Used as URL"
-desc = "Express 요청에서 가져온 URL을 fetch, axios, got, request 또는 Node HTTP 클라이언트에 직접 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-918"]
-severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b[^\r\n]*$'''
-]
-
-regex = '''(?ix)\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])'''
-
-
-[[rules]]
-id = "A05-918-004"
-name = "Suspicious JavaScript URL Variable Used in Server Request"
-desc = "사용자 제어 가능성이 높은 URL 변수를 JavaScript 서버 측 HTTP 요청 함수에 직접 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-918"]
-severity = "medium"
-
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b[^\r\n]*$'''
-]
-
-regex = '''(?ix)\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:user(?:Url|URL|Uri|URI)|target(?:Url|URL|Uri|URI)|remote(?:Url|URL|Uri|URI)|callback(?:Url|URL)|webhook(?:Url|URL)|redirect(?:Url|URL)|next(?:Url|URL)|image(?:Url|URL)|avatar(?:Url|URL)|resource(?:Url|URL)|fetch(?:Url|URL))\b'''
-
-
-[[rules]]
 id = "A05-918-005"
-name = "User-Controlled URL in JavaScript Request Configuration"
-desc = "axios 또는 request 설정 객체의 url 속성에 Express 요청 입력값을 직접 지정하는 경우"
+name = "User-Controlled URL in Python Request Configuration"
+desc = "사용자 입력 URL을 requests 또는 httpx의 URL 키워드·요청 설정 객체에 직접 지정하는 경우"
 owasp = ["A05"]
 cwe = ["CWE-918"]
 severity = "high"
@@ -1176,11 +1203,28 @@ severity = "high"
 path_allowlist = [
   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
 ]
+
 allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:axios|request)\s*\(\s*\{[^\r\n}]*\burl\s*:\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b[^\r\n]*$'''
+  '''(?isx)^\s*[^\r\n]*\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}["']?url["']?\s*[:=]\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)\s*$'''
 ]
 
-regex = '''(?ix)\b(?:axios|request)\s*\(\s*\{[^\r\n}]*\burl\s*:\s*(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])[^\r\n}]*\}'''
+regex = '''(?isx)(?:
+\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(
+(?=(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}["']?url["']?\s*[:=]\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?))
+(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)
+|
+\b(?P<vibesafe_request_config>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{
+(?=(?:[^{}]|\{[^{}]*\}){0,1200}["']?url["']?\s*:\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?))
+(?:[^{}]|\{[^{}]*\}){0,1200}\}
+[\s\S]{0,1200}?
+\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(\s*\*\*\s*(?P=vibesafe_request_config)\b
+|
+\b(?P<vibesafe_aliased_request_url>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?)
+[\s\S]{0,1200}?
+\b(?P<vibesafe_aliased_request_config>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{(?=(?:[^{}]|\{[^{}]*\}){0,1200}["']?url["']?\s*:\s*(?P=vibesafe_aliased_request_url)\b)(?:[^{}]|\{[^{}]*\}){0,1200}\}
+[\s\S]{0,1200}?
+\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(\s*\*\*\s*(?P=vibesafe_aliased_request_config)\b
+)'''
 
 
 #############################################
@@ -1202,19 +1246,19 @@ allowlist = [
 regex = '''(?ix)\bfor\s+[A-Za-z_][A-Za-z0-9_]*\s+in\s+range\s*\(\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])'''
 
 
-[[rules]]
-id = "A10-770-002"
-name = "User-Controlled JavaScript Loop Bound"
-desc = "Express 요청값을 반복문의 종료 조건으로 직접 사용하여 제한 없이 작업을 반복할 수 있는 경우"
-owasp = ["A10"]
-cwe = ["CWE-770"]
-severity = "high"
+# [[rules]]
+# id = "A10-770-002"
+# name = "User-Controlled JavaScript Loop Bound"
+# desc = "Express 요청값을 반복문의 종료 조건으로 직접 사용하여 제한 없이 작업을 반복할 수 있는 경우"
+# owasp = ["A10"]
+# cwe = ["CWE-770"]
+# severity = "high"
 
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:count|limit|iterations|repetitions|size)\b[^\r\n]*$'''
-]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:count|limit|iterations|repetitions|size)\b[^\r\n]*$'''
+# ]
 
-regex = '''(?ix)\bfor\s*\([^;\r\n]*;[^;\r\n]*(?:(?:<=|>=|<|>)\s*(?:(?:Number|parseInt)\s*\(\s*)?(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:(?:Number|parseInt)\s*\(\s*)?(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])\s*\)?\s*(?:<=|>=|<|>))'''
+# regex = '''(?ix)\bfor\s*\([^;\r\n]*;[^;\r\n]*(?:(?:<=|>=|<|>)\s*(?:(?:Number|parseInt)\s*\(\s*)?(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:(?:Number|parseInt)\s*\(\s*)?(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])\s*\)?\s*(?:<=|>=|<|>))'''
 
 
 [[rules]]
@@ -1229,22 +1273,22 @@ allowlist = [
   '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:size|length|count|capacity)\b[^\r\n]*$'''
 ]
 
-regex = '''(?ix)(?:\b(?:bytearray|bytes)\s*\(\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])|(?:\[[^\]\r\n]*\]|["'][^"'\r\n]*["'])\s*\*\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\]))'''
+regex = '''(?ix)(?:\b(?:bytearray|bytes)\s*\(\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])|(?:\[[^\]\r\n]*\]|["'][^"'\r\n]*["'])\s*\*\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])|\b(?P<vibesafe_allocation_size>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])\s*\)[\s\S]{0,800}?\b(?:bytearray|bytes)\s*\(\s*(?P=vibesafe_allocation_size)\s*\))'''
 
 
-[[rules]]
-id = "A10-770-004"
-name = "User-Controlled JavaScript Memory Allocation"
-desc = "Express 요청값을 Buffer, Array 또는 문자열 반복 크기로 직접 사용하여 과도한 메모리를 할당할 수 있는 경우"
-owasp = ["A10"]
-cwe = ["CWE-770"]
-severity = "high"
+# [[rules]]
+# id = "A10-770-004"
+# name = "User-Controlled JavaScript Memory Allocation"
+# desc = "Express 요청값을 Buffer, Array 또는 문자열 반복 크기로 직접 사용하여 과도한 메모리를 할당할 수 있는 경우"
+# owasp = ["A10"]
+# cwe = ["CWE-770"]
+# severity = "high"
 
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:size|length|count|capacity)\b[^\r\n]*$'''
-]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:size|length|count|capacity)\b[^\r\n]*$'''
+# ]
 
-regex = '''(?ix)(?:\b(?:Buffer\.(?:alloc|allocUnsafe)|(?:new\s+)?Array)\s*\(\s*(?:(?:Number|parseInt)\s*\(\s*|\+\s*)(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:\b[A-Za-z_$][A-Za-z0-9_$]*|["'][^"'\r\n]*["']|`[^`\r\n]*`)\s*\.\s*repeat\s*\(\s*(?:(?:Number|parseInt)\s*\(\s*|\+\s*)?(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\]))'''
+# regex = '''(?ix)(?:\b(?:Buffer\.(?:alloc|allocUnsafe)|(?:new\s+)?Array)\s*\(\s*(?:(?:Number|parseInt)\s*\(\s*|\+\s*)(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:\b[A-Za-z_$][A-Za-z0-9_$]*|["'][^"'\r\n]*["']|`[^`\r\n]*`)\s*\.\s*repeat\s*\(\s*(?:(?:Number|parseInt)\s*\(\s*|\+\s*)?(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\]))'''
 
 
 [[rules]]
@@ -1259,22 +1303,22 @@ allowlist = [
   '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host|request)\b[^\r\n]*$'''
 ]
 
-regex = '''(?ix)(?:\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|session\.(?:get|post|put|patch|delete|request))\s*\([^\r\n]*\btimeout\s*=\s*None\b|\bhttpx\.Timeout\s*\(\s*None\s*\)|\bsocket\.setdefaulttimeout\s*\(\s*None\s*\))'''
+regex = '''(?ix)(?:\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|session\.(?:get|post|put|patch|delete|request))\s*\([^\r\n]*\btimeout\s*=\s*None\b|\bhttpx\.Timeout\s*\(\s*None\s*\)|\bsocket\.setdefaulttimeout\s*\(\s*None\s*\)|\b(?:aiohttp\s*\.\s*)?ClientTimeout\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,500}?\btotal\s*=\s*None\b)'''
 
 
-[[rules]]
-id = "A10-770-006"
-name = "Disabled JavaScript Network Timeout"
-desc = "Node.js 서버나 HTTP 클라이언트의 timeout을 0으로 설정하여 연결이 무기한 유지될 수 있는 경우"
-owasp = ["A10"]
-cwe = ["CWE-770"]
-severity = "medium"
+# [[rules]]
+# id = "A10-770-006"
+# name = "Disabled JavaScript Network Timeout"
+# desc = "Node.js 서버나 HTTP 클라이언트의 timeout을 0으로 설정하여 연결이 무기한 유지될 수 있는 경우"
+# owasp = ["A10"]
+# cwe = ["CWE-770"]
+# severity = "medium"
 
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host|request|server)\b[^\r\n]*$'''
-]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host|request|server)\b[^\r\n]*$'''
+# ]
 
-regex = '''(?ix)(?:\b(?:server|request|req|socket|agent)\.setTimeout\s*\(\s*0\s*\)|\bserver\.(?:requestTimeout|headersTimeout|timeout|keepAliveTimeout)\s*=\s*0\b|\baxios\.(?:get|post|put|patch|delete|head|request)\s*\([^\r\n]*\{[^\r\n}]*\btimeout\s*:\s*0\b|\baxios(?:\.create)?\s*\(\s*\{[^\r\n}]*\btimeout\s*:\s*0\b)'''
+# regex = '''(?ix)(?:\b(?:server|request|req|socket|agent)\.setTimeout\s*\(\s*0\s*\)|\bserver\.(?:requestTimeout|headersTimeout|timeout|keepAliveTimeout)\s*=\s*0\b|\baxios\.(?:get|post|put|patch|delete|head|request)\s*\([^\r\n]*\{[^\r\n}]*\btimeout\s*:\s*0\b|\baxios(?:\.create)?\s*\(\s*\{[^\r\n}]*\btimeout\s*:\s*0\b)'''
 
 
 [[rules]]
