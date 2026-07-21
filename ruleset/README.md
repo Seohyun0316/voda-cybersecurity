@@ -1,6 +1,6 @@
 # Ruleset
 
-- `ruleset.toml` — 정규식 룰셋 (현재 v1.1.1)
+- `ruleset.toml` — 정규식 룰셋 (현재 v2.1.0)
 - 검증 워크플로: `validate.py` → `smoke.py` (0 FAIL 확인) → `perf_coverage.py` → commit
 
 ```bash
