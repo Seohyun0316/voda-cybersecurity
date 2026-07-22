@@ -66,3 +66,29 @@ python scan_local_dataset.py ../data/ai_generated output/my_findings.jsonl
   범위). `.html`/`.htm` 파일은 스캔되지 않는다.
 - 일부 파일(특히 ChatGPT 폴더)이 CP949(EUC-KR)로 저장돼 있어도 자동으로
   인코딩을 재시도하므로 별도 변환이 필요 없다.
+
+## label_findings.py — findings 라벨링 CLI
+
+### 뭘 하는 파일인가
+
+`scan_local_dataset.py`가 뽑아낸 `label: null` findings를 터미널에서 하나씩
+보여주고, 사람이 판정하면 그 자리에서 `label`을 채워 저장하는 대화형 도구다.
+finding마다 룰 설명(`desc`), CWE/OWASP, 그리고 실제 소스 코드에서 매치 줄
+전후 3줄을 함께 보여주므로 파일을 직접 열어보지 않아도 판단할 수 있다.
+
+### 왜 실행하는가
+
+`scan_local_dataset.py`는 후보만 뽑을 뿐 진짜 위험인지 오탐인지는 사람이
+판정해야 한다. 이 스크립트가 그 라벨링 작업을 빠르게 반복할 수 있게
+해준다 — 응답 하나마다 즉시 파일에 저장하므로 중간에 멈춰도 안전하고,
+다시 실행하면 라벨이 없는 항목부터 이어서 진행한다.
+
+### 실행 방법
+
+```bash
+cd ruleset
+python label_findings.py output/ai_generated_findings.jsonl ../data/ai_generated
+```
+
+조작: `y`=진짜 위험, `n`=오탐, `s`=모르겠음(건너뜀), `u`=방금 판정 취소,
+`q`=저장하고 종료.
