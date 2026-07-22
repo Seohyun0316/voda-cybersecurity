@@ -126,6 +126,7 @@ def main() -> None:
                                 "model": model,
                                 "rule_id": rule["id"],
                                 "rule_name": rule["name"],
+                                "desc": rule["desc"],
                                 "owasp": rule["owasp"],
                                 "cwe": rule["cwe"],
                                 "severity": rule["severity"],
