@@ -32,6 +32,9 @@
 # [v2.0.0 변경 사항]
 # 최종적으로 사용할 룰셋 외 다른 룰들은 모두 주석 처리 및 일부 오류 수정
 
+# [v2.1.0 변경 사항]
+# 미사용 룰셋 주석 처리 누락 수정... 진짜 진짜 최종
+
 title = "VibeSafe Rule Set"
 version = "2.0.0" 
 [rule_config]
@@ -340,19 +343,20 @@ allowlist = []
 regex = '''(?ix)(?:\breturn\s+(?:jsonify|JSONResponse|Response)\s*\(\s*|\b(?:jsonify|JSONResponse|Response)\s*\(\s*|\b(?:res|response)(?:\s*\.\s*status\s*\([^()\r\n]{0,64}\))?\s*\.\s*(?:json|send)\s*\(\s*)(?:\{[\s\S]{0,2048}?|[\s\S]{0,256}?)(?:(?:str|repr)\s*\(\s*(?:e|err|exc|error|exception)\s*\)|(?:e|err|exc|error|exception)\s*\.\s*(?:message|stack|stacktrace|args)\b|traceback\.format_exc\s*\(\s*\)|sys\.exc_info\s*\(\s*\))'''
 
 
-[[rules]]
-
-id = "PII-359-001"
-name = "Email Address Hardcoding"
-desc = "코드 안에 실제 이메일처럼 보이는 문자열이 존재하는 경우"
-owasp = ["PII"] # 여기에 PII 넣어야할지 고민...
-cwe = ["CWE-359"]
-severity = "medium"
-
-allowlist = [
-  '''(?i)^[A-Z0-9._%+-]+@(?:example\.(?:com|org|net)|localhost|test\.invalid)$'''
-]
-regex = '''(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b'''
+# 프로젝트 범위에서 제외된 룰: PII-359-001
+# [[rules]]
+#
+# id = "PII-359-001"
+# name = "Email Address Hardcoding"
+# desc = "코드 안에 실제 이메일처럼 보이는 문자열이 존재하는 경우"
+# owasp = ["PII"]
+# cwe = ["CWE-359"]
+# severity = "medium"
+#
+# allowlist = [
+#   '''(?i)^[A-Z0-9._%+-]+@(?:example\.(?:com|org|net)|localhost|test\.invalid)$'''
+# ]
+# regex = '''(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b'''
 
 
 # 전화번호 규칙은 URL·식별자 숫자의 오탐이 많아 안정화 전까지 비활성화한다.
@@ -451,17 +455,18 @@ allowlist = []
 regex = '''(?ix)(?:["']?(?:wtf[_-]?csrf[_-]?(?:enabled|check[_-]?default)|csrf[_-]?(?:enabled|protection|protect|check|validation)|enable[_-]?csrf)["']?\s*[:=]\s*(?:false|0|none|null)\b|["']?csrf["']?\s*[:=]\s*(?:false|0)\b|\b(?:app\s*\.\s*)?config\s*\[\s*["'](?:wtf[_-]?csrf[_-]?(?:enabled|check[_-]?default)|csrf[_-]?(?:enabled|protection|protect|check|validation)|enable[_-]?csrf)["']\s*\]\s*=\s*(?:false|0|none|null)\b)'''
 
 
-[[rules]]
-
-id = "A02-352-003"
-name = "Unsafe Methods Excluded from CSRF"
-desc = "POST, PUT, PATCH, DELETE 같은 상태 변경 메서드를 CSRF 검사 제외 목록에 넣은 경우"
-owasp = ["A02"]
-cwe = ["CWE-352"]
-severity = "high"
-
-allowlist = []
-regex = '''(?ix)["']?(?:ignore|ignored|exclude|excluded|skip)[_-]?methods["']?\s*[:=]\s*(?:\[[^\]]{0,400}\b(?:post|put|patch|delete)\b[^\]]{0,400}\]|\([^)]{0,400}\b(?:post|put|patch|delete)\b[^)]{0,400}\))'''
+# 프로젝트 범위에서 제외된 룰: A02-352-003
+# [[rules]]
+#
+# id = "A02-352-003"
+# name = "Unsafe Methods Excluded from CSRF"
+# desc = "POST, PUT, PATCH, DELETE 같은 상태 변경 메서드를 CSRF 검사 제외 목록에 넣은 경우"
+# owasp = ["A02"]
+# cwe = ["CWE-352"]
+# severity = "high"
+#
+# allowlist = []
+# regex = '''(?ix)["']?(?:ignore|ignored|exclude|excluded|skip)[_-]?methods["']?\s*[:=]\s*(?:\[[^\]]{0,400}\b(?:post|put|patch|delete)\b[^\]]{0,400}\]|\([^)]{0,400}\b(?:post|put|patch|delete)\b[^)]{0,400}\))'''
 
 
 [[rules]]
@@ -477,30 +482,32 @@ allowlist = []
 regex = '''(?ix)\b(?:[A-Za-z_$][A-Za-z0-9_$]*\s*\.\s*(?:save|mv|move)|(?:fs\s*\.\s*)?(?:writeFile(?:Sync)?|createWriteStream|rename(?:Sync)?)|[A-Za-z_$][A-Za-z0-9_$]*(?:\s*\.\s*[A-Za-z_$][A-Za-z0-9_$]*)*\s*\.\s*mv)\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,500}?\b(?:file|upload(?:ed)?[_-]?file|request\s*\.\s*files(?:\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_$][A-Za-z0-9_$]*)?|req\s*\.\s*files?(?:\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_$][A-Za-z0-9_$]*)?)\s*\.\s*(?:filename|originalname|name)\b'''
 
 
-[[rules]]
+# 프로젝트 범위에서 제외된 룰: A02-434-002
+# [[rules]]
+#
+# id = "A02-434-002"
+# name = "Unvalidated Python File Upload"
+# desc = "Python 웹 프레임워크에서 파일 유형과 크기 검증 없이 업로드 파일을 저장하는 경우"
+# owasp = ["A02"]
+# cwe = ["CWE-434"]
+# severity = "medium"
+#
+# allowlist = []
+# regex = '''(?isx)(?!(?=[\s\S]{0,1200}\b(?:allowed[_-]?file|mimetype|content[_-]?type|extension|suffix)\b)(?=[\s\S]{0,1200}\b(?:MAX_CONTENT_LENGTH|max[_-]?file[_-]?size|content[_-]?length|file[_-]?size)\b))\b(?:request\.(?:files|FILES)\s*(?:\[[^\]]+\]|\.get\s*\([^)]+\))|[A-Za-z_][A-Za-z0-9_]*\s*:\s*UploadFile\b)[\s\S]{0,1200}?(?:\.save\s*\(|default_storage\.save\s*\(|shutil\.copyfileobj\s*\(|\.write\s*\()'''
 
-id = "A02-434-002"
-name = "Unvalidated Python File Upload"
-desc = "Python 웹 프레임워크에서 파일 유형과 크기 검증 없이 업로드 파일을 저장하는 경우"
-owasp = ["A02"]
-cwe = ["CWE-434"]
-severity = "medium"
 
-allowlist = []
-regex = '''(?isx)(?!(?=[\s\S]{0,1200}\b(?:allowed[_-]?file|mimetype|content[_-]?type|extension|suffix)\b)(?=[\s\S]{0,1200}\b(?:MAX_CONTENT_LENGTH|max[_-]?file[_-]?size|content[_-]?length|file[_-]?size)\b))\b(?:request\.(?:files|FILES)\s*(?:\[[^\]]+\]|\.get\s*\([^)]+\))|[A-Za-z_][A-Za-z0-9_]*\s*:\s*UploadFile\b)[\s\S]{0,1200}?(?:\.save\s*\(|default_storage\.save\s*\(|shutil\.copyfileobj\s*\(|\.write\s*\()'''
-
-
-[[rules]]
-
-id = "A02-434-003"
-name = "Unrestricted Multiple Python File Upload"
-desc = "Python 웹 프레임워크에서 업로드 필드나 파일 개수 제한 없이 다중 파일을 허용하는 경우"
-owasp = ["A02"]
-cwe = ["CWE-434"]
-severity = "medium"
-
-allowlist = []
-regex = '''(?isx)\b(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*request\.(?:files|FILES)\.getlist\s*\([^)]+\)|[A-Za-z_][A-Za-z0-9_]*\s*:\s*(?:list|List)\s*\[\s*UploadFile\s*\])(?!(?:[\s\S]{0,800})\b(?:len\s*\([^)]*\)\s*(?:>|>=)|max[_-]?(?:files?|file[_-]?count)|file[_-]?count[_-]?limit)\b)'''
+# 프로젝트 범위에서 제외된 룰: A02-434-003
+# [[rules]]
+#
+# id = "A02-434-003"
+# name = "Unrestricted Multiple Python File Upload"
+# desc = "Python 웹 프레임워크에서 업로드 필드나 파일 개수 제한 없이 다중 파일을 허용하는 경우"
+# owasp = ["A02"]
+# cwe = ["CWE-434"]
+# severity = "medium"
+#
+# allowlist = []
+# regex = '''(?isx)\b(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*request\.(?:files|FILES)\.getlist\s*\([^)]+\)|[A-Za-z_][A-Za-z0-9_]*\s*:\s*(?:list|List)\s*\[\s*UploadFile\s*\])(?!(?:[\s\S]{0,800})\b(?:len\s*\([^)]*\)\s*(?:>|>=)|max[_-]?(?:files?|file[_-]?count)|file[_-]?count[_-]?limit)\b)'''
 
 
 # [[rules]]
@@ -516,17 +523,18 @@ regex = '''(?isx)\b(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*request\.(?:files|FILES)\.get
 # regex = '''(?ix)\b(?:app|router|server)\s*\.\s*(?:get|post|put|patch|delete|all)\s*\(\s*["'](?:/(?:admin|management|internal)(?:/[^"'\r\n]*)?|/(?:users?|accounts?|profiles?)/(?:me|current|:[A-Za-z_$][A-Za-z0-9_$]*|\{[A-Za-z_$][A-Za-z0-9_$]*\}|<[^>"'\r\n]+>)(?:/[^"'\r\n]*)?)["']\s*,(?![^\r\n]{0,800}\b(?:auth(?:enticate|orize|entication)?(?:[_-]?(?:middleware|guard))?|authenticate[_-]?token|require[_-]?(?:auth|login|user|role)|ensure[_-]?(?:auth|authenticated|login)|is[_-]?(?:authenticated|authorized|admin)|admin[_-]?only|jwt[_-]?(?:required|auth)|verify[_-]?(?:token|jwt|auth)|check[_-]?(?:permission|auth|role)|protect(?:ed)?|permit)\b\s*(?:\(|,))[^\r\n]*'''
 
 
-[[rules]]
-
-id = "A02-862-002"
-name = "Unprotected Sensitive Python Route"
-desc = "민감 경로의 Flask 또는 FastAPI 라우트가 인가 데코레이터나 Depends 의존성 없이 함수에 바로 연결된 경우를 휴리스틱으로 탐지"
-owasp = ["A02"]
-cwe = ["CWE-862"]
-severity = "medium"
-
-allowlist = []
-regex = '''(?imx)^[ \t]*(?:\#[ \t]*)?@(?:app|router|bp|blueprint)\s*\.\s*(?:route|get|post|put|patch|delete)\s*\(\s*["'](?:/(?:admin|management|internal)(?:/[^"'\r\n]*)?|/(?:users?|accounts?|profiles?)/(?:me|current|<[^>"'\r\n]+>|\{[A-Za-z_][A-Za-z0-9_]*\})(?:/[^"'\r\n]*)?)["'](?![^\r\n]*\b(?:Security\s*\(|Depends\s*\(\s*(?:(?:[A-Za-z_$][A-Za-z0-9_$]*\s*\.\s*)*(?:get_current_(?:active_)?user|current_user|require_(?:auth|user|admin|role)|verify_(?:token|jwt|auth)|authenticate|authorize|check_(?:permission|auth|role)|admin_only|jwt_required))\b))[^\r\n]*\)[ \t]*\r?\n(?:(?![ \t]*(?:\#[ \t]*)?@(?:login_required|jwt_required|permission_required|roles_required|admin_required|auth_required|requires_auth|requires_login|staff_member_required|user_passes_test)\b)[ \t]*(?:\#[ \t]*)?@[^\r\n]+\r?\n){0,8}[ \t]*(?:\#[ \t]*)?(?:async[ \t]+)?def[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*\((?![^\r\n]*\b(?:Security\s*\(|Depends\s*\(\s*(?:(?:[A-Za-z_$][A-Za-z0-9_$]*\s*\.\s*)*(?:get_current_(?:active_)?user|current_user|require_(?:auth|user|admin|role)|verify_(?:token|jwt|auth)|authenticate|authorize|check_(?:permission|auth|role)|admin_only|jwt_required))\b))(?:[^()\r\n]|\([^()\r\n]*\)){0,800}\)[ \t]*(?:->[^\r\n:]+)?:'''
+# 프로젝트 범위에서 제외된 룰: A02-862-002
+# [[rules]]
+#
+# id = "A02-862-002"
+# name = "Unprotected Sensitive Python Route"
+# desc = "민감 경로의 Flask 또는 FastAPI 라우트가 인가 데코레이터나 Depends 의존성 없이 함수에 바로 연결된 경우를 휴리스틱으로 탐지"
+# owasp = ["A02"]
+# cwe = ["CWE-862"]
+# severity = "medium"
+#
+# allowlist = []
+# regex = '''(?imx)^[ \t]*(?:\#[ \t]*)?@(?:app|router|bp|blueprint)\s*\.\s*(?:route|get|post|put|patch|delete)\s*\(\s*["'](?:/(?:admin|management|internal)(?:/[^"'\r\n]*)?|/(?:users?|accounts?|profiles?)/(?:me|current|<[^>"'\r\n]+>|\{[A-Za-z_][A-Za-z0-9_]*\})(?:/[^"'\r\n]*)?)["'](?![^\r\n]*\b(?:Security\s*\(|Depends\s*\(\s*(?:(?:[A-Za-z_$][A-Za-z0-9_$]*\s*\.\s*)*(?:get_current_(?:active_)?user|current_user|require_(?:auth|user|admin|role)|verify_(?:token|jwt|auth)|authenticate|authorize|check_(?:permission|auth|role)|admin_only|jwt_required))\b))[^\r\n]*\)[ \t]*\r?\n(?:(?![ \t]*(?:\#[ \t]*)?@(?:login_required|jwt_required|permission_required|roles_required|admin_required|auth_required|requires_auth|requires_login|staff_member_required|user_passes_test)\b)[ \t]*(?:\#[ \t]*)?@[^\r\n]+\r?\n){0,8}[ \t]*(?:\#[ \t]*)?(?:async[ \t]+)?def[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*\((?![^\r\n]*\b(?:Security\s*\(|Depends\s*\(\s*(?:(?:[A-Za-z_$][A-Za-z0-9_$]*\s*\.\s*)*(?:get_current_(?:active_)?user|current_user|require_(?:auth|user|admin|role)|verify_(?:token|jwt|auth)|authenticate|authorize|check_(?:permission|auth|role)|admin_only|jwt_required))\b))(?:[^()\r\n]|\([^()\r\n]*\)){0,800}\)[ \t]*(?:->[^\r\n:]+)?:'''
 
 
 [[rules]]
@@ -1137,22 +1145,23 @@ allowlist = [
 regex = '''(?ix)\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?:request\.(?:args|form|values)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|request\.(?:json|data)|request\.get_json\s*\(\s*\)(?:\s*\.get\s*\([^)\r\n]+\))?)'''
 
 
-[[rules]]
-id = "A05-918-002"
-name = "Suspicious Python URL Variable Used in Server Request"
-desc = "사용자 제어 가능성이 높은 URL 변수를 Python HTTP 요청 함수에 직접 전달하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-918"]
-severity = "medium"
+# 프로젝트 범위에서 제외된 룰: A05-918-002
+# [[rules]]
+# id = "A05-918-002"
+# name = "Suspicious Python URL Variable Used in Server Request"
+# desc = "사용자 제어 가능성이 높은 URL 변수를 Python HTTP 요청 함수에 직접 전달하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-918"]
+# severity = "medium"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b[^\r\n]*$'''
-]
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b[^\r\n]*$'''
+# ]
 
-regex = '''(?ix)(?:\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?:user[_-]?(?:url|uri)|target[_-]?(?:url|uri)|remote[_-]?(?:url|uri)|callback[_-]?url|webhook[_-]?url|redirect[_-]?url|next[_-]?url|image[_-]?url|avatar[_-]?url|resource[_-]?url|fetch[_-]?url)\b|\b(?P<vibesafe_plain_url>url|uri)\s*=\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|request\.(?:json|data)|request\.get_json\s*\(\s*\)(?:\s*\.get\s*\([^)\r\n]+\)|\s*\[[^\]\r\n]+\])?)[\s\S]{0,1200}?\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?P=vibesafe_plain_url)\b)'''
+# regex = '''(?ix)(?:\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?:user[_-]?(?:url|uri)|target[_-]?(?:url|uri)|remote[_-]?(?:url|uri)|callback[_-]?url|webhook[_-]?url|redirect[_-]?url|next[_-]?url|image[_-]?url|avatar[_-]?url|resource[_-]?url|fetch[_-]?url)\b|\b(?P<vibesafe_plain_url>url|uri)\s*=\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|request\.(?:json|data)|request\.get_json\s*\(\s*\)(?:\s*\.get\s*\([^)\r\n]+\)|\s*\[[^\]\r\n]+\])?)[\s\S]{0,1200}?\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|options|request)|urllib\.request\.urlopen|(?:session|client)\.(?:get|post|put|patch|delete|request))\s*\(\s*(?P=vibesafe_plain_url)\b)'''
 
 
 # [[rules]]
@@ -1191,59 +1200,61 @@ regex = '''(?ix)(?:\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|op
 # regex = '''(?ix)\b(?:fetch|axios\.(?:get|post|put|patch|delete|head|request)|got(?:\.(?:get|post|put|patch|delete|head))?|request|https?\.(?:get|request))\s*\(\s*(?:user(?:Url|URL|Uri|URI)|target(?:Url|URL|Uri|URI)|remote(?:Url|URL|Uri|URI)|callback(?:Url|URL)|webhook(?:Url|URL)|redirect(?:Url|URL)|next(?:Url|URL)|image(?:Url|URL)|avatar(?:Url|URL)|resource(?:Url|URL)|fetch(?:Url|URL))\b'''
 
 
-[[rules]]
+# 프로젝트 범위에서 제외된 룰: A05-918-005
+# [[rules]]
 
-id = "A05-918-005"
-name = "User-Controlled URL in Python Request Configuration"
-desc = "사용자 입력 URL을 requests 또는 httpx의 URL 키워드·요청 설정 객체에 직접 지정하는 경우"
-owasp = ["A05"]
-cwe = ["CWE-918"]
-severity = "high"
+# id = "A05-918-005"
+# name = "User-Controlled URL in Python Request Configuration"
+# desc = "사용자 입력 URL을 requests 또는 httpx의 URL 키워드·요청 설정 객체에 직접 지정하는 경우"
+# owasp = ["A05"]
+# cwe = ["CWE-918"]
+# severity = "high"
 
-path_allowlist = [
-  '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
-]
+# path_allowlist = [
+#   '''(?ix)(?:^|[\\/])(?:tests?|examples?|fixtures?)(?:[\\/]|$)'''
+# ]
 
-allowlist = [
-  '''(?isx)^\s*[^\r\n]*\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}["']?url["']?\s*[:=]\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)\s*$'''
-]
+# allowlist = [
+#   '''(?isx)^\s*[^\r\n]*\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}["']?url["']?\s*[:=]\s*(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:url|uri|endpoint|host)\b(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)\s*$'''
+# ]
 
-regex = '''(?isx)(?:
-\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(
-(?=(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}["']?url["']?\s*[:=]\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?))
-(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)
-|
-\b(?P<vibesafe_request_config>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{
-(?=(?:[^{}]|\{[^{}]*\}){0,1200}["']?url["']?\s*:\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?))
-(?:[^{}]|\{[^{}]*\}){0,1200}\}
-[\s\S]{0,1200}?
-\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(\s*\*\*\s*(?P=vibesafe_request_config)\b
-|
-\b(?P<vibesafe_aliased_request_url>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?)
-[\s\S]{0,1200}?
-\b(?P<vibesafe_aliased_request_config>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{(?=(?:[^{}]|\{[^{}]*\}){0,1200}["']?url["']?\s*:\s*(?P=vibesafe_aliased_request_url)\b)(?:[^{}]|\{[^{}]*\}){0,1200}\}
-[\s\S]{0,1200}?
-\b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(\s*\*\*\s*(?P=vibesafe_aliased_request_config)\b
-)'''
+# regex = '''(?isx)(?:
+# \b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(
+# (?=(?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}["']?url["']?\s*[:=]\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?))
+# (?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,1200}\)
+# |
+# \b(?P<vibesafe_request_config>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{
+# (?=(?:[^{}]|\{[^{}]*\}){0,1200}["']?url["']?\s*:\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?))
+# (?:[^{}]|\{[^{}]*\}){0,1200}\}
+# [\s\S]{0,1200}?
+# \b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(\s*\*\*\s*(?P=vibesafe_request_config)\b
+# |
+# \b(?P<vibesafe_aliased_request_url>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:request\s*\.\s*(?:args|GET|query_params|form|values|json)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)|request\s*\.\s*get_json\s*\(\s*\)(?:\s*\.\s*get\s*\([^()\r\n]*\)|\s*\[[^\]\r\n]+\]|\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)?)
+# [\s\S]{0,1200}?
+# \b(?P<vibesafe_aliased_request_config>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{(?=(?:[^{}]|\{[^{}]*\}){0,1200}["']?url["']?\s*:\s*(?P=vibesafe_aliased_request_url)\b)(?:[^{}]|\{[^{}]*\}){0,1200}\}
+# [\s\S]{0,1200}?
+# \b(?:requests\s*\.\s*(?:request|Request)|httpx\s*\.\s*Request)\s*\(\s*\*\*\s*(?P=vibesafe_aliased_request_config)\b
+# )'''
 
 
 #############################################
 # A10 Mishandling of Exceptional Conditions #
 #############################################
 
-[[rules]]
-id = "A10-770-001"
-name = "User-Controlled Python Loop Bound"
-desc = "웹 요청값, 표준 입력 또는 명령행 인자를 반복 횟수로 직접 사용하여 제한 없이 작업을 반복할 수 있는 경우"
-owasp = ["A10"]
-cwe = ["CWE-770"]
-severity = "high"
+# 프로젝트 범위에서 제외된 룰: A10-770-001
+# [[rules]]
+# id = "A10-770-001"
+# name = "User-Controlled Python Loop Bound"
+# desc = "웹 요청값, 표준 입력 또는 명령행 인자를 반복 횟수로 직접 사용하여 제한 없이 작업을 반복할 수 있는 경우"
+# owasp = ["A10"]
+# cwe = ["CWE-770"]
+# severity = "high"
 
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:count|limit|iterations|repetitions|size)\b[^\r\n]*$'''
-]
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:count|limit|iterations|repetitions|size)\b[^\r\n]*$'''
+# ]
 
-regex = '''(?ix)\bfor\s+[A-Za-z_][A-Za-z0-9_]*\s+in\s+range\s*\(\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])'''
+# regex = '''(?ix)\bfor\s+[A-Za-z_][A-Za-z0-9_]*\s+in\s+range\s*\(\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])'''
 
 
 # [[rules]]
