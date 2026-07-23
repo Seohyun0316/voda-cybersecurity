@@ -33,10 +33,13 @@
 # 최종적으로 사용할 룰셋 외 다른 룰들은 모두 주석 처리 및 일부 오류 수정
 
 # [v2.1.0 변경 사항]
-# 미사용 룰셋 주석 처리 누락 수정... 진짜 진짜 최종
+# 미사용 룰셋 주석 처리 누락 수정
+
+# [v2.2.0 변경 사항]
+# A04-256-001, A04-798-004, A10-770-003 프로젝트에서 제외
 
 title = "VibeSafe Rule Set"
-version = "2.0.0" 
+version = "2.2.0" 
 [rule_config]
 # 현재는 언어 필터링에 사용하지 않으며 룰셋의 대상 언어를 나타내는 메타데이터다.
 target_lang = ["Python"]
@@ -594,18 +597,19 @@ regex = '''(?ix)(?:\bssl\s*\.\s*_create_unverified_context\s*\(|\b[A-Za-z_][A-Za
 ################################
 
 
-[[rules]]
-
-id = "A04-256-001"
-name = "Plaintext Storage of a Password"
-desc = "해시되지 않은 비밀번호를 DB·ORM 저장 함수에 전달하거나 저장 대상 필드에 기록하는 경우"
-owasp = ["A04"] 
-cwe = ["CWE-256"]
-severity = "high"
-
+# 프로젝트 범위에서 제외된 룰: A04-256-001
+# [[rules]]
+#
+# id = "A04-256-001"
+# name = "Plaintext Storage of a Password"
+# desc = "해시되지 않은 비밀번호를 DB·ORM 저장 함수에 전달하거나 저장 대상 필드에 기록하는 경우"
+# owasp = ["A04"]
+# cwe = ["CWE-256"]
+# severity = "high"
+#
 # 단순 지역 변수 할당은 제외하고, 저장 함수 인자 또는 저장되는 객체 필드만 탐지한다.
-allowlist = []
-regex = '''(?ix)(?:\b(?:insert|insert_one|insert_many|create|update|update_one|update_many|find_one_and_update|save)\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,2048}?(?:["']?(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-]){0,2}(?:{passwords})(?:[_-][A-Za-z0-9]+){0,1}(?![A-Za-z0-9])["']?\s*[:=]\s*(?!\s*(?:[A-Za-z0-9_]+\.)*(?:hash|hashpw|digest|bcrypt|argon2?|scrypt|pbkdf2|hashlib|generate_password_hash|encode_password|make_password)\b)[^,;}\r\n]{1,256}|["']?(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-]){0,2}(?:{passwords})(?:[_-][A-Za-z0-9]+){0,1}(?![A-Za-z0-9])["']?(?=\s*[,}]))|\b[A-Za-z_$][A-Za-z0-9_$]*(?:\s*\.\s*[A-Za-z_$][A-Za-z0-9_$]*)*\s*\.\s*(?:{passwords})\s*=\s*(?!\s*(?:[A-Za-z0-9_]+\.)*(?:hash|hashpw|digest|bcrypt|argon2?|scrypt|pbkdf2|hashlib|generate_password_hash|encode_password|make_password)\b)[^;\r\n]{1,256}(?:[;\r\n]+[\s\S]{0,1024}?)?\b(?:[A-Za-z_$][A-Za-z0-9_.$]*\.save|(?:db|session)\.(?:add|commit|flush))\s*\(|\b(?:[A-Za-z_$][A-Za-z0-9_$]*\.)?execute\s*\(\s*["'][^"'\r\n]{0,1024}\b(?:insert|update)\b[^"'\r\n]*\bpassword\b[^"'\r\n]*["'][\s\S]{0,512}?\b(?:{passwords})\b|\b(?-i:[A-Z])[A-Za-z0-9_$]*\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,1024}?(?:["']?(?:{passwords})["']?\s*=\s*(?!\s*(?:[A-Za-z0-9_]+\.)*(?:hash|hashpw|digest|bcrypt|argon2?|scrypt|pbkdf2|hashlib|generate_password_hash|encode_password|make_password)\b)[^,;)\r\n]{1,256}|["']?(?:{passwords})["']?(?=\s*[,)]))[^;\r\n]{0,512}\)\s*;?[\s\S]{0,512}?\b(?:db\.)?session\.add\s*\()'''
+# allowlist = []
+# regex = '''(?ix)(?:\b(?:insert|insert_one|insert_many|create|update|update_one|update_many|find_one_and_update|save)\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,2048}?(?:["']?(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-]){0,2}(?:{passwords})(?:[_-][A-Za-z0-9]+){0,1}(?![A-Za-z0-9])["']?\s*[:=]\s*(?!\s*(?:[A-Za-z0-9_]+\.)*(?:hash|hashpw|digest|bcrypt|argon2?|scrypt|pbkdf2|hashlib|generate_password_hash|encode_password|make_password)\b)[^,;}\r\n]{1,256}|["']?(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-]){0,2}(?:{passwords})(?:[_-][A-Za-z0-9]+){0,1}(?![A-Za-z0-9])["']?(?=\s*[,}]))|\b[A-Za-z_$][A-Za-z0-9_$]*(?:\s*\.\s*[A-Za-z_$][A-Za-z0-9_$]*)*\s*\.\s*(?:{passwords})\s*=\s*(?!\s*(?:[A-Za-z0-9_]+\.)*(?:hash|hashpw|digest|bcrypt|argon2?|scrypt|pbkdf2|hashlib|generate_password_hash|encode_password|make_password)\b)[^;\r\n]{1,256}(?:[;\r\n]+[\s\S]{0,1024}?)?\b(?:[A-Za-z_$][A-Za-z0-9_.$]*\.save|(?:db|session)\.(?:add|commit|flush))\s*\(|\b(?:[A-Za-z_$][A-Za-z0-9_$]*\.)?execute\s*\(\s*["'][^"'\r\n]{0,1024}\b(?:insert|update)\b[^"'\r\n]*\bpassword\b[^"'\r\n]*["'][\s\S]{0,512}?\b(?:{passwords})\b|\b(?-i:[A-Z])[A-Za-z0-9_$]*\s*\((?:[^;\r\n]|\r?\n[ \t]+){0,1024}?(?:["']?(?:{passwords})["']?\s*=\s*(?!\s*(?:[A-Za-z0-9_]+\.)*(?:hash|hashpw|digest|bcrypt|argon2?|scrypt|pbkdf2|hashlib|generate_password_hash|encode_password|make_password)\b)[^,;)\r\n]{1,256}|["']?(?:{passwords})["']?(?=\s*[,)]))[^;\r\n]{0,512}\)\s*;?[\s\S]{0,512}?\b(?:db\.)?session\.add\s*\()'''
 
 
 [[rules]]
@@ -691,19 +695,20 @@ allowlist = [
 regex = '''(?ix)(?:["']?(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:{tokens}|{provider_tokens})(?:[_-][A-Za-z0-9]+){0,2}(?![A-Za-z0-9])["']?\s*(?::\s*[A-Za-z_$][A-Za-z0-9_$<>\[\]., |]*\s*=|:=|=>|[=:])\s*(?:[bru]{0,2})?(?:["'][^"'\r\n]{4,}["']|`(?![^`\r\n]*\$\{)[^`\r\n]{4,}`)|(?m:^(?-i:(?=[A-Z][A-Z0-9_]{0,100}[ \t]*=))(?:[A-Za-z0-9]+[_-]|(?-i:[a-z0-9]+(?=[A-Z]))){0,3}(?:{tokens}|{provider_tokens})(?:[_-][A-Za-z0-9]+){0,2}[ \t]*=[ \t]*(?!os\.getenv|environ(?:\.get|\[)|settings\.|process\.env|config\.|vault\.|prompt\s*\(|get_[A-Za-z0-9_]*\s*\(|load_[A-Za-z0-9_]*\s*\(|await\s+|\$\{|\$[A-Za-z_]|\{\{|<)[A-Za-z0-9][A-Za-z0-9_./+@:=!-]{3,}(?=[ \t]*(?:\#[^\r\n]*)?$))|(?<![A-Za-z0-9])(?:gh[pousr]_[0-9A-Za-z]{20,}|github_pat_[0-9A-Za-z_]{20,}|glpat-[0-9A-Za-z_-]{12,}|xox[baprs]-[0-9A-Za-z-]{12,}|npm_[0-9A-Za-z]{20,}|pypi-[0-9A-Za-z_-]{20,}|hf_[0-9A-Za-z]{20,})(?![A-Za-z0-9]))'''
 
 
-[[rules]]
-
-id = "A04-798-004"
-name = "Exposed Private Key Block"
-desc = "Private key 블록이 코드 내에 드러난 경우"
-owasp = ["A04"] 
-cwe = ["CWE-798"]
-severity = "high"
-
-allowlist = [
-  '''(?is)^-----BEGIN (?P<vibesafe_allow_key_type>(?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY|PGP PRIVATE KEY BLOCK)-----\s*(?:x{8,}|0{8,}|a{8,}|example|sample|dummy|placeholder|\.\.\.)\s*-----END (?P=vibesafe_allow_key_type)-----$'''
-]
-regex = '''(?is)-----BEGIN (?P<vibesafe_private_key_type>(?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY|PGP PRIVATE KEY BLOCK)-----[\s\S]{1,32768}?-----END (?P=vibesafe_private_key_type)-----'''
+# 프로젝트 범위에서 제외된 룰: A04-798-004
+# [[rules]]
+#
+# id = "A04-798-004"
+# name = "Exposed Private Key Block"
+# desc = "Private key 블록이 코드 내에 드러난 경우"
+# owasp = ["A04"]
+# cwe = ["CWE-798"]
+# severity = "high"
+#
+# allowlist = [
+#   '''(?is)^-----BEGIN (?P<vibesafe_allow_key_type>(?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY|PGP PRIVATE KEY BLOCK)-----\s*(?:x{8,}|0{8,}|a{8,}|example|sample|dummy|placeholder|\.\.\.)\s*-----END (?P=vibesafe_allow_key_type)-----$'''
+# ]
+# regex = '''(?is)-----BEGIN (?P<vibesafe_private_key_type>(?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY|PGP PRIVATE KEY BLOCK)-----[\s\S]{1,32768}?-----END (?P=vibesafe_private_key_type)-----'''
 
 
 [[rules]]
@@ -1272,19 +1277,20 @@ regex = '''(?ix)\b(?:(?:requests|httpx)\.(?:get|post|put|patch|delete|head|optio
 # regex = '''(?ix)\bfor\s*\([^;\r\n]*;[^;\r\n]*(?:(?:<=|>=|<|>)\s*(?:(?:Number|parseInt)\s*\(\s*)?(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])|(?:(?:Number|parseInt)\s*\(\s*)?(?:req|request)\.(?:query|body|params)(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[[^\]\r\n]+\])\s*\)?\s*(?:<=|>=|<|>))'''
 
 
-[[rules]]
-id = "A10-770-003"
-name = "User-Controlled Python Memory Allocation"
-desc = "사용자 입력값을 bytearray, bytes, 문자열 또는 리스트의 크기로 직접 사용하여 과도한 메모리를 할당할 수 있는 경우"
-owasp = ["A10"]
-cwe = ["CWE-770"]
-severity = "high"
-
-allowlist = [
-  '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:size|length|count|capacity)\b[^\r\n]*$'''
-]
-
-regex = '''(?ix)(?:\b(?:bytearray|bytes)\s*\(\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])|(?:\[[^\]\r\n]*\]|["'][^"'\r\n]*["'])\s*\*\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])|\b(?P<vibesafe_allocation_size>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])\s*\)[\s\S]{0,800}?\b(?:bytearray|bytes)\s*\(\s*(?P=vibesafe_allocation_size)\s*\))'''
+# 프로젝트 범위에서 제외된 룰: A10-770-003
+# [[rules]]
+# id = "A10-770-003"
+# name = "User-Controlled Python Memory Allocation"
+# desc = "사용자 입력값을 bytearray, bytes, 문자열 또는 리스트의 크기로 직접 사용하여 과도한 메모리를 할당할 수 있는 경우"
+# owasp = ["A10"]
+# cwe = ["CWE-770"]
+# severity = "high"
+#
+# allowlist = [
+#   '''(?ix)^\s*[^\r\n]*\b(?:example|sample|demo|dummy|mock|placeholder)[_-]?(?:size|length|count|capacity)\b[^\r\n]*$'''
+# ]
+#
+# regex = '''(?ix)(?:\b(?:bytearray|bytes)\s*\(\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])|(?:\[[^\]\r\n]*\]|["'][^"'\r\n]*["'])\s*\*\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])|\b(?P<vibesafe_allocation_size>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*int\s*\(\s*(?:request\.(?:args|form|values|GET|POST)\s*(?:\[[^\]\r\n]+\]|\.get\s*\([^)\r\n]+\))|input\s*\([^)\r\n]*\)|sys\.argv\s*\[[^\]\r\n]+\])\s*\)[\s\S]{0,800}?\b(?:bytearray|bytes)\s*\(\s*(?P=vibesafe_allocation_size)\s*\))'''
 
 
 # [[rules]]
