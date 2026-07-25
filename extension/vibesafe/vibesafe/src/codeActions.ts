@@ -3,7 +3,7 @@
  * Finding.fix.replacement 가 있으면 전구(💡) 메뉴에 수정 제안을 띄운다.
  */
 import * as vscode from 'vscode';
-import { AnalysisResult, Finding } from './analyzer';
+import { AnalysisResult, Finding, createAnalyzer } from './analyzer';
 
 export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider {
   static readonly metadata: vscode.CodeActionProviderMetadata = {
@@ -55,7 +55,7 @@ export async function applyAllFixes(result: AnalysisResult | undefined): Promise
     return;
   }
 
-  // 💡 [수정] 한 번에 다 고치지 않고, 가장 위에 있는 첫 번째(1건) 위험 요소만 고칩니다.
+  // 💡 가장 위에 있는 첫 번째(1건) 위험 요소만 수정
   const target = fixable[0];
   const edit = new vscode.WorkspaceEdit();
   edit.replace(
@@ -71,5 +71,17 @@ export async function applyAllFixes(result: AnalysisResult | undefined): Promise
     vscode.window.showInformationMessage(
       `VibeSafe: 1건 자동 수정 적용 완료 ${remainingCount > 0 ? `(남은 위험 ${remainingCount}건)` : '(모든 위험 수정 완료!)'}`,
     );
+
+    // 💡 [핵심]: 패널(점수)을 갱신하지 않고, 다음 자동 수정을 위한 내부 위치 추적만 조용히 업데이트합니다.
+    try {
+      const doc = editor.document;
+      const analyzer = createAnalyzer();
+      const updatedResult = await analyzer.analyze(doc.getText(), doc.fileName, doc.languageId);
+      
+      // 기존 result의 findings 목록만 최신 위치 정보로 슬쩍 교체
+      result.findings = updatedResult.findings;
+    } catch (e) {
+      // 분석 실패 시 예외 무시
+    }
   }
 }

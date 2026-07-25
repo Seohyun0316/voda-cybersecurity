@@ -112,7 +112,7 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     margin-bottom: 12px;
   }
 
-  /* 💡 로고 프레임: 원형 짤림 없이 정중앙에 배치 */
+  /* 💡 로고 프레임: 깔끔한 네이비 테두리 */
   .logo-wrapper {
     width: 44px;
     height: 44px;
@@ -123,7 +123,7 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     align-items: center;
     justify-content: center;
     background: #ffffff; /* 흰색 배경으로 로고와 매칭 */
-    border: 1px solid #7d233c;
+    border: 1px solid #4b8bec;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
   
@@ -139,15 +139,12 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     justify-content: center;
   }
 
-  /* 💡 버건디 / 와인 톤 타이틀 */
+  /* 💡 그라데이션 제거 후 다크모드에서도 선명하게 보이는 단일 네이비/블루 적용 */
   .title-text {
     font-size: 14px;
     font-weight: 800;
     letter-spacing: 0.3px;
-    background: linear-gradient(135deg, #e06d88 0%, #9e2a4b 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.5));
+    color: #4b8bec;
   }
 
   .sub-desc {
