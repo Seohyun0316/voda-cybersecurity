@@ -4,7 +4,11 @@
  */
 import { test } from 'node:test';
 import * as assert from 'node:assert';
-import { mapDetectResponse } from '../analyzer/remoteAnalyzer';
+import {
+  RemoteAnalyzer,
+  mapDetectResponse,
+  validateDetectResponse,
+} from '../analyzer/remoteAnalyzer';
 
 const CODE = ['import os', 'API_KEY = "sk-proj-xK92abcdef"', 'print(1)'].join('\n');
 
@@ -151,4 +155,169 @@ test('빈 응답은 안전(0점)', () => {
   const result = mapDetectResponse({ findings: [] }, '', 'a.py', 'python');
   assert.strictEqual(result.riskScore, 0);
   assert.strictEqual(result.findings.length, 0);
+});
+
+test('필수 필드가 없거나 잘못된 severity면 응답을 거부', () => {
+  assert.throws(
+    () => validateDetectResponse({}),
+    /findings.*배열/,
+  );
+  assert.throws(
+    () => validateDetectResponse({
+      findings: [
+        {
+          rule_id: 'A05-89-001',
+          severity: 'critical',
+          line: 0,
+          start_col: 0,
+          end_col: 5,
+          message: 'SQL Injection',
+        },
+      ],
+    }),
+    /findings\[0\]\.severity/,
+  );
+});
+
+test('음수·소수 좌표와 역전된 범위를 거부', () => {
+  const finding = {
+    rule_id: 'A05-89-001',
+    severity: 'high',
+    line: 0,
+    start_col: 0,
+    end_col: 5,
+    message: 'SQL Injection',
+  };
+
+  assert.throws(
+    () => validateDetectResponse({
+      findings: [{ ...finding, line: -1 }],
+    }),
+    /findings\[0\]\.line.*0 이상의 정수/,
+  );
+  assert.throws(
+    () => validateDetectResponse({
+      findings: [{ ...finding, start_col: 1.5 }],
+    }),
+    /findings\[0\]\.start_col.*0 이상의 정수/,
+  );
+  assert.throws(
+    () => validateDetectResponse({
+      findings: [{ ...finding, start_col: 6, end_col: 5 }],
+    }),
+    /end_col.*start_col보다 작을 수 없습니다/,
+  );
+});
+
+test('전체·개별 위험도 점수는 유한한 0~100 값만 허용', () => {
+  const finding = {
+    rule_id: 'A04-798-001',
+    severity: 'high',
+    line: 0,
+    start_col: 0,
+    end_col: 5,
+    message: '하드코딩 비밀값',
+  };
+
+  for (const invalidScore of [-1, 101, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.throws(
+      () => validateDetectResponse({
+        risk_score: invalidScore,
+        findings: [finding],
+      }),
+      /risk_score.*0~100/,
+    );
+    assert.throws(
+      () => validateDetectResponse({
+        findings: [{ ...finding, risk_score: invalidScore }],
+      }),
+      /findings\[0\]\.risk_score.*0~100/,
+    );
+  }
+});
+
+test('legal null 가중치와 fix null은 API 계약에 따라 허용', () => {
+  const response = validateDetectResponse({
+    risk_score: null,
+    findings: [
+      {
+        rule_id: 'A04-798-001',
+        severity: 'high',
+        line: 0,
+        start_col: 0,
+        end_col: 5,
+        message: '하드코딩 비밀값',
+        legal: {
+          law: '개인정보보호법',
+          article: '§29',
+          description: '',
+          liability: null,
+          sanction: null,
+        },
+        fix: null,
+      },
+    ],
+  });
+
+  assert.strictEqual(response.findings[0].legal?.liability, null);
+  assert.strictEqual(response.findings[0].fix, null);
+});
+
+test('잘못된 날짜와 legal·fix 중첩 구조를 거부', () => {
+  const finding = {
+    rule_id: 'A04-798-001',
+    severity: 'high',
+    line: 0,
+    start_col: 0,
+    end_col: 5,
+    message: '하드코딩 비밀값',
+  };
+
+  assert.throws(
+    () => validateDetectResponse({
+      analyzed_at: 'not-a-date',
+      findings: [finding],
+    }),
+    /analyzed_at.*유효한 날짜/,
+  );
+  assert.throws(
+    () => validateDetectResponse({
+      findings: [{
+        ...finding,
+        legal: {
+          law: '개인정보보호법',
+          article: '§29',
+          description: '',
+          liability: 4,
+          sanction: 1,
+        },
+      }],
+    }),
+    /legal\.liability/,
+  );
+  assert.throws(
+    () => validateDetectResponse({
+      findings: [{ ...finding, fix: { replacement: 'safe_code' } }],
+    }),
+    /fix\.title/,
+  );
+});
+
+test('잘못된 JSON은 사용자 친화적인 오류로 변환', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => ({
+    ok: true,
+    json: async () => {
+      throw new SyntaxError('Unexpected token');
+    },
+  })) as unknown as typeof fetch;
+
+  try {
+    await assert.rejects(
+      new RemoteAnalyzer('http://localhost/detect').analyze('', 'a.py', 'python'),
+      /서버 응답이 올바른 JSON이 아닙니다/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

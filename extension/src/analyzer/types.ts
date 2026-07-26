@@ -43,8 +43,8 @@ export interface LegalRisk {
   law: string;              // 예: "개인정보보호법"
   article: string;          // 예: "§29"
   description: string;      // 예: "안전조치 의무 위반 가능"
-  liability: LiabilityLevel; // 법적 책임도
-  sanction: SanctionLevel;   // 제재 수준
+  liability: LiabilityLevel | null; // 법적 책임도, 정보가 없으면 null
+  sanction: SanctionLevel | null;   // 제재 수준, 정보가 없으면 null
   sanctionType?: SanctionType; // 사용자에게 보여줄 제재 유형
 }
 
