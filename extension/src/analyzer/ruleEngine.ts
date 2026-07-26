@@ -99,6 +99,23 @@ const RULES: Rule[] = [
     message: '디버그 모드 활성화',
     detail: '운영 배포 시 내부 정보 노출 위험',
   },
+  {
+  id: 'verify-false',
+  pattern: /\bverify\s*=\s*False\b/g,
+  severity: 'warning',
+  category: 'crypto',
+  message: 'SSL 인증 검증이 비활성화되었습니다.',
+  detail: 'verify=True를 사용하거나 인증서를 올바르게 설정하세요.',
+  },
+  {
+  id: 'resident-registration-number',
+  pattern: /\b\d{6}-[1-4]\d{6}\b/g,
+  severity: 'error',
+  category: 'secret',
+  message: '주민등록번호가 포함되어 있습니다.',
+  detail: '개인정보는 코드에 저장하거나 공개하면 안 됩니다.',
+  legal: PIPA_29,
+  }
 ];
 
 export class RuleEngineAnalyzer implements Analyzer {
