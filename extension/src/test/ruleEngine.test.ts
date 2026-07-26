@@ -29,17 +29,76 @@ test('OpenAI API 키 탐지', async () => {
   const f = result.findings.find((x) => x.ruleId === 'exposed-api-key');
   assert.ok(f, 'sk- 키를 탐지해야 함');
   assert.strictEqual(f!.category, 'cost');
+  assert.strictEqual(
+    f!.fix?.replacement,
+    'os.environ.get("OPENAI_API_KEY")',
+    '따옴표까지 포함한 키를 환경변수 표현식으로 교체해야 함',
+  );
 });
 
 test('SQL Injection 탐지', async () => {
   const code = `query = "SELECT * FROM users WHERE id='" + username + "'"`;
   const result = await engine.analyze(code, 'auth.py', 'python');
-  assert.ok(result.findings.some((x) => x.ruleId === 'sql-injection'));
+  const f = result.findings.find((x) => x.ruleId === 'sql-injection');
+  assert.ok(f);
+  assert.ok(f!.fix?.replacement?.includes('?'), '바인딩 파라미터 수정 제안이 있어야 함');
 });
 
 test('MD5 해싱 탐지', async () => {
   const result = await engine.analyze('hashed = hashlib.md5(password.encode())', 'auth.py', 'python');
-  assert.ok(result.findings.some((x) => x.ruleId === 'weak-hash'));
+  const f = result.findings.find((x) => x.ruleId === 'weak-hash');
+  assert.ok(f);
+  assert.strictEqual(f!.fix?.replacement, 'sha256(');
+});
+
+test('팀원 구현의 자동 수정 대상 4건을 모두 제공', async () => {
+  const code = [
+    'DB_PASSWORD = "admin1234"',
+    'API_KEY = "sk-proj-xK92abcdef123"',
+    `query = "SELECT * FROM users WHERE id='" + username + "'"`,
+    'hashed = hashlib.md5(password.encode())',
+  ].join('\n');
+  const result = await engine.analyze(code, 'auth.py', 'python');
+  const fixableRuleIds = result.findings
+    .filter((finding) => Boolean(finding.fix?.replacement))
+    .map((finding) => finding.ruleId);
+
+  assert.deepStrictEqual(
+    fixableRuleIds,
+    ['hardcoded-password', 'exposed-api-key', 'sql-injection', 'weak-hash'],
+  );
+});
+
+test('자동 수정을 위에서부터 1건씩 적용해도 다음 위치를 다시 계산할 수 있음', async () => {
+  let code = [
+    'DB_PASSWORD = "admin1234"',
+    'API_KEY = "sk-proj-xK92abcdef123"',
+    `query = "SELECT * FROM users WHERE id='" + username + "'"`,
+    'hashed = hashlib.md5(password.encode())',
+  ].join('\n');
+  let applied = 0;
+
+  while (applied < 10) {
+    const result = await engine.analyze(code, 'auth.py', 'python');
+    const target = result.findings.find((finding) => Boolean(finding.fix?.replacement));
+    if (!target?.fix?.replacement) break;
+
+    const lines = code.split('\n');
+    const line = lines[target.line];
+    lines[target.line] =
+      line.slice(0, target.startCol) +
+      target.fix.replacement +
+      line.slice(target.endCol);
+    code = lines.join('\n');
+    applied += 1;
+  }
+
+  const finalResult = await engine.analyze(code, 'auth.py', 'python');
+  assert.strictEqual(applied, 4);
+  assert.ok(finalResult.findings.every((finding) => !finding.fix?.replacement));
+  assert.ok(code.includes('DB_PASSWORD = os.environ.get("DB_PASSWORD")'));
+  assert.ok(code.includes('API_KEY = os.environ.get("OPENAI_API_KEY")'));
+  assert.ok(code.includes('hashlib.sha256(password.encode())'));
 });
 
 test('안전한 코드는 탐지 없음', async () => {

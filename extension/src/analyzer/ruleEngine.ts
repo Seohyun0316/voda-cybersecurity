@@ -85,7 +85,7 @@ function envVarFix(varName: string, languageId: string): { title: string; replac
   const name = varName.toUpperCase();
   const replacement =
     languageId === 'python'
-      ? `os.environ["${name}"]`
+      ? `os.environ.get("${name}")`
       : `process.env.${name}`;
   return { title: `환경변수 ${name}(으)로 교체`, replacement };
 }
@@ -107,11 +107,15 @@ const RULES: Rule[] = [
   },
   {
     id: 'exposed-api-key',
-    pattern: /(sk-[a-zA-Z0-9_-]{8,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{20,})/g,
+    pattern: /(["']?)(sk-[a-zA-Z0-9_-]{8,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{20,})\1/g,
     severity: 'error',
     category: 'cost',
     message: 'API 키 노출 — 과금 위험',
     detail: 'Git 푸시 시 무단 과금 발생 가능. 즉시 키 재발급 필요',
+    makeFix: (_match, lang) => ({
+      title: 'API 키 환경변수로 숨기기',
+      replacement: lang === 'python' ? 'os.environ.get("OPENAI_API_KEY")' : 'process.env.OPENAI_API_KEY',
+    }),
   },
   {
     id: 'sql-injection',
@@ -120,6 +124,10 @@ const RULES: Rule[] = [
     category: 'injection',
     message: 'SQL Injection 위험',
     detail: 'parameterized query 또는 ORM 사용 필요',
+    makeFix: () => ({
+      title: 'SQL 바인딩 파라미터 사용(? 사용)',
+      replacement: '"SELECT * FROM users WHERE id=?" #',
+    }),
   },
   {
     id: 'weak-hash',
@@ -128,6 +136,10 @@ const RULES: Rule[] = [
     category: 'crypto',
     message: '취약한 해시 알고리즘 (비밀번호 해싱 부적합)',
     detail: 'bcrypt, scrypt, argon2 사용 권장',
+    makeFix: () => ({
+      title: 'sha256 해시 알고리즘으로 교체',
+      replacement: 'sha256(',
+    }),
   },
   {
     id: 'dangerous-eval',
@@ -136,6 +148,10 @@ const RULES: Rule[] = [
     category: 'injection',
     message: 'eval() 사용 — 코드 주입 위험',
     detail: '사용자 입력이 eval에 전달되면 원격 코드 실행 가능',
+    makeFix: () => ({
+      title: 'eval()을 ast.literal_eval()로 교체',
+      replacement: 'ast.literal_eval(',
+    }),
   },
   {
     id: 'debug-mode',
@@ -144,6 +160,10 @@ const RULES: Rule[] = [
     category: 'other',
     message: '디버그 모드 활성화',
     detail: '운영 배포 시 내부 정보 노출 위험',
+    makeFix: () => ({
+      title: '디버그 모드 비활성화 (False)',
+      replacement: 'debug = False',
+    }),
   },
   {
   id: 'dangerous-file-upload',

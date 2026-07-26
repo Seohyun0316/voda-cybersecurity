@@ -71,6 +71,64 @@ test('severity 매핑: medium→warning, low→info + category 추정', () => {
   assert.strictEqual(result.findings[1].severity, 'info');
 });
 
+test('백엔드 API 키 룰은 secret 응답이어도 과금 경보 category로 변환', () => {
+  const result = mapDetectResponse(
+    {
+      findings: [
+        {
+          rule_id: 'A04-798-002',
+          cwe: 'CWE-798',
+          category: 'secret',
+          severity: 'high',
+          line: 0,
+          start_col: 10,
+          end_col: 30,
+          message: '하드코딩된 API 키가 감지되었습니다.',
+          detail: 'Git 푸시 시 무단 과금 위험',
+        },
+      ],
+    },
+    'API_KEY = "sk-proj-xK92abcdef"',
+    'auth.py',
+    'python',
+  );
+
+  assert.strictEqual(result.findings[0].category, 'cost');
+});
+
+test('백엔드 상세 category를 Extension UI category로 변환', () => {
+  const result = mapDetectResponse(
+    {
+      findings: [
+        {
+          rule_id: 'A05-089-001',
+          category: 'sql_injection',
+          severity: 'medium',
+          line: 0,
+          start_col: 0,
+          end_col: 5,
+          message: 'SQL Injection',
+        },
+        {
+          rule_id: 'A10-770-001',
+          category: 'resource_exhaustion',
+          severity: 'low',
+          line: 1,
+          start_col: 0,
+          end_col: 5,
+          message: '자원 제한 없음',
+        },
+      ],
+    },
+    'line1\nline2',
+    'a.py',
+    'python',
+  );
+
+  assert.strictEqual(result.findings[0].category, 'injection');
+  assert.strictEqual(result.findings[1].category, 'cost');
+});
+
 test('risk_score 없으면 계약 공식(§1)으로 계산', () => {
   const result = mapDetectResponse(
     {

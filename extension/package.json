@@ -30,15 +30,14 @@
         {
           "type": "webview",
           "id": "vibesafe.riskPanel",
-          "name": "위험 분석"
+          "name": ""
         }
       ]
     },
     "commands": [
       {
         "command": "vibesafe.analyzeFile",
-        "title": "VibeSafe: 현재 파일 검사",
-        "icon": "$(shield)"
+        "title": "VibeSafe: 현재 파일 분석"
       },
       {
         "command": "vibesafe.showPanel",
@@ -63,15 +62,6 @@
           "description": "ML 백엔드 /detect API 엔드포인트 (Flask 기본 5000, mock 서버 테스트 시 http://localhost:8788/detect)"
         }
       }
-    },
-    "menus": {
-      "editor/title": [
-        {
-          "command": "vibesafe.analyzeFile",
-          "group": "navigation",
-          "when": "resourceLangId =~ /python|javascript|typescript|java|go|php|ruby/"
-        }
-      ]
     }
   },
   "scripts": {

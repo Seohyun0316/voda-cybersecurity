@@ -30,7 +30,7 @@ export interface DetectLegal {
 export interface DetectFinding {
   rule_id: string;                       // 예: "A04-798-001"
   cwe?: string;                          // 예: "CWE-798"
-  category?: Category;
+  category?: string;                     // 백엔드 상세 category 또는 Extension category
   severity: 'high' | 'medium' | 'low';
   line: number;                          // ★ 0-based (스펙 확정)
   start_col: number;                     // 0-based
@@ -54,12 +54,46 @@ const SEVERITY_MAP: Record<DetectFinding['severity'], Severity> = {
   low: 'info',
 };
 
+const BACKEND_CATEGORY_MAP: Record<string, Category> = {
+  secret: 'secret',
+  privacy: 'secret',
+  information_exposure: 'secret',
+  logging: 'secret',
+  input_validation: 'injection',
+  path_traversal: 'injection',
+  command_injection: 'injection',
+  sql_injection: 'injection',
+  code_injection: 'injection',
+  xss: 'injection',
+  insecure_deserialization: 'injection',
+  ssrf: 'injection',
+  cryptography: 'crypto',
+  tls: 'crypto',
+  resource_exhaustion: 'cost',
+  csrf: 'other',
+  file_upload: 'other',
+  access_control: 'other',
+  authentication: 'other',
+  cost: 'cost',
+  injection: 'injection',
+  crypto: 'crypto',
+  other: 'other',
+};
+
 /** category 누락 시 rule_id/cwe로 추정하는 방어 로직 */
 function fallbackCategory(ruleId: string, cwe?: string): Category {
   if (cwe === 'CWE-798' || ruleId.startsWith('PII')) return 'secret';
   if (ruleId.startsWith('A04')) return 'crypto';
   if (ruleId.startsWith('A05')) return 'injection';
   return 'other';
+}
+
+function mapCategory(finding: DetectFinding): Category {
+  // 백엔드는 CWE-798 전체를 secret으로 분류하지만, 이 룰은 API 키 노출 전용이라
+  // 사용자에게 과금 위험으로 별도 표시해야 한다.
+  if (finding.rule_id === 'A04-798-002') return 'cost';
+  return BACKEND_CATEGORY_MAP[finding.category ?? '']
+    ?? fallbackCategory(finding.rule_id, finding.cwe);
 }
 
 /** /detect 응답 → 내부 AnalysisResult 변환 (순수 함수 — 유닛 테스트 대상) */
@@ -74,7 +108,7 @@ export function mapDetectResponse(
     message: d.message,
     detail: d.detail ?? d.cwe ?? '',
     severity: SEVERITY_MAP[d.severity] ?? 'warning',
-    category: d.category ?? fallbackCategory(d.rule_id, d.cwe),
+    category: mapCategory(d),
     line: d.line,
     startCol: d.start_col ?? 0,
     endCol: d.end_col ?? d.start_col + 1,

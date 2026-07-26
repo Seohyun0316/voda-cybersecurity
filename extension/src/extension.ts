@@ -21,10 +21,13 @@ export function activate(context: vscode.ExtensionContext): void {
   const diagnostics = new DiagnosticsManager(context);
   const statusBar = new StatusBarManager(context);
   const codeActions = new VibeSafeCodeActionProvider();
-  const panel = new RiskPanelProvider({
-    onApplyFixes: () => applyAllFixes(panel.getLastResult()),
-    onScan: () => vscode.commands.executeCommand('vibesafe.analyzeFile'),
-  });
+  const panel = new RiskPanelProvider(
+    context.extensionUri,
+    {
+      onApplyFixes: () => applyAllFixes(panel.getLastResult()),
+      onScan: () => vscode.commands.executeCommand('vibesafe.analyzeFile'),
+    },
+  );
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(RiskPanelProvider.viewId, panel),
