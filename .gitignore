@@ -22,5 +22,8 @@ server/model/*.joblib
 
 # IDE / OS
 .vscode/
+!extension/.vscode/
+!extension/.vscode/launch.json
+!extension/.vscode/settings.json
 .idea/
 .DS_Store
