@@ -59,13 +59,36 @@ def test_predictor_scores_known_rule():
 #     assert 0.0 <= probability <= 1.0
 
 
-def test_detector_exposes_probabilities_without_aggregating():
+def test_detector_keeps_candidate_that_model_classifies_as_vulnerable():
     detector = Detector()
     code = 'password = "super-secret-value"'
     result = detector.detect(code, "python", "auth.py")
 
-    scores = detector.score_candidates(code, result["findings"])
-    assert result["risk_score"] is None
-    assert scores["A04-798-001"] == pytest.approx(
-        EXPECTED_SECRET_PROBABILITY, abs=1e-6
+    finding = next(
+        item for item in result["findings"] if item["rule_id"] == "A04-798-001"
     )
+    assert "ml_probability" not in finding
+    assert result["risk_score"] is None
+
+
+def test_detector_removes_candidate_that_model_classifies_as_safe():
+    class SafePredictor:
+        available = True
+
+        @staticmethod
+        def knows_rule(rule_id):
+            return True
+
+        @staticmethod
+        def predict_vulnerable_probability(rule_id, features):
+            return 0.49
+
+    detector = Detector()
+    detector.predictor = SafePredictor()
+
+    result = detector.detect(
+        'password = "super-secret-value"', "python", "auth.py"
+    )
+
+    assert result["findings"] == []
+    assert result["risk_score"] is None

@@ -28,7 +28,7 @@ def test_health_reports_rule_and_model_readiness(client):
     assert body["ml"]["risk_score_policy"] == "pending_team_decision"
 
 
-def test_detect_returns_rule_finding_and_pending_score(client):
+def test_detect_returns_candidate_accepted_by_ml_filter(client):
     code = 'password = "super-secret-value"'
     response = client.post(
         "/detect",
@@ -39,6 +39,7 @@ def test_detect_returns_rule_finding_and_pending_score(client):
     body = response.get_json()
     finding = next(item for item in body["findings"] if item["rule_id"] == "A04-798-001")
     assert body["risk_score"] is None
+    assert "ml_probability" not in finding
     assert finding["cwe"] == "CWE-798"
     assert finding["category"] == "secret"
     assert finding["severity"] == "high"
@@ -48,6 +49,21 @@ def test_detect_returns_rule_finding_and_pending_score(client):
     assert finding["legal"]["law"] == "개인정보보호법"
     assert finding["fix"]["title"] == "환경변수로 교체"
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T.*Z", body["analyzed_at"])
+
+
+def test_detect_returns_pending_risk_when_no_rule_candidate_exists(client):
+    response = client.post(
+        "/detect",
+        json={
+            "code": "def add(left, right):\n    return left + right",
+            "language": "python",
+            "file_name": "math_utils.py",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["findings"] == []
+    assert response.get_json()["risk_score"] is None
 
 
 def test_detect_uses_zero_based_line_and_column(client):
