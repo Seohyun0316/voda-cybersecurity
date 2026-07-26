@@ -100,13 +100,14 @@ Content-Type: application/json
       "start_col": 0,
       "end_col": 31,
       "message": "하드코딩된 비밀값 패턴이 감지되었습니다.",
-      "detail": "Hardcoded Generic Secret Variables 룰에 의해 탐지되었습니다.",
+      "detail": "환경변수(.env) 또는 Secrets Manager 사용 권장",
       "legal": {
         "law": "개인정보보호법",
         "article": "§29",
         "description": "안전조치 의무 위반 소지가 있습니다.",
         "liability": null,
-        "sanction": null
+        "sanction": null,
+        "sanction_type": "과징금·과태료"
       }
     }
   ],
@@ -164,7 +165,8 @@ API 어댑터가 이를 UI 카테고리로 변환한다.
   "article": "§29",
   "description": "안전조치 의무 위반 소지가 있습니다.",
   "liability": 2,
-  "sanction": 1
+  "sanction": 1,
+  "sanction_type": "과징금·과태료"
 }
 ```
 
@@ -175,9 +177,12 @@ API 어댑터가 이를 UI 카테고리로 변환한다.
 | `description` | string | 예 |
 | `liability` | `1` \| `2` \| `3` \| null | 예 |
 | `sanction` | `0.5` \| `1` \| `2` \| null | 예 |
+| `sanction_type` | `형사처벌` \| `과징금·과태료` \| `형사처벌, 과징금·과태료` \| `시정명령·권고` | 아니요 |
 
 Extension의 점수 계산에서 `liability: null`은 `1`, `sanction: null`은 `0.5`로
 처리한다. `legal` 자체가 없거나 `null`이면 법적 가중치는 `1.0`이다.
+`sanction_type`은 `docs/legal-mapping.md`의 제재 수준을 사용자에게 표시하기 위한
+문자열이며 점수 계산에는 사용하지 않는다.
 
 ## 7. Fix
 

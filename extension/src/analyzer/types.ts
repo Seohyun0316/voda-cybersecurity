@@ -31,6 +31,13 @@ export type LiabilityLevel = 1 | 2 | 3;
  */
 export type SanctionLevel = 0.5 | 1 | 2;
 
+/** docs/legal-mapping.md의 표시용 제재 유형 */
+export type SanctionType =
+  | '형사처벌'
+  | '과징금·과태료'
+  | '형사처벌, 과징금·과태료'
+  | '시정명령·권고';
+
 /** 법적 리스크 메타데이터 (사이드 패널 '법적 리스크' 섹션 + 점수 가중에 사용) */
 export interface LegalRisk {
   law: string;              // 예: "개인정보보호법"
@@ -38,6 +45,7 @@ export interface LegalRisk {
   description: string;      // 예: "안전조치 의무 위반 가능"
   liability: LiabilityLevel; // 법적 책임도
   sanction: SanctionLevel;   // 제재 수준
+  sanctionType?: SanctionType; // 사용자에게 보여줄 제재 유형
 }
 
 /** 자동 수정 제안 (quick fix) */
@@ -92,6 +100,77 @@ const SEVERITY_WEIGHT: Record<Severity, number> = { error: 25, warning: 12, info
 export function legalWeight(legal?: LegalRisk): number {
   if (!legal) return 1;
   return (legal.liability ?? 1) + (legal.sanction ?? 0.5); // 백엔드가 누락 시 최소값으로 방어
+}
+
+export interface LegalRiskGroup {
+  law: string;
+  article: string;
+  items: Array<{ ruleId: string; legal: LegalRisk }>;
+}
+
+/**
+ * 같은 법률·조항 아래 서로 다른 룰을 모은다.
+ * 같은 사용자 설명과 제재가 여러 룰·위치에서 반복되면 한 번만 포함한다.
+ */
+export function groupLegalRisks(findings: Finding[]): LegalRiskGroup[] {
+  const groups = new Map<
+    string,
+    { group: LegalRiskGroup; seenItemKeys: Set<string> }
+  >();
+
+  for (const finding of findings) {
+    const legal = finding.legal;
+    if (!legal) continue;
+
+    const key = `${legal.law.trim().replace(/\s+/g, ' ')}\u0000${legal.article.trim().replace(/\s+/g, ' ')}`;
+    let entry = groups.get(key);
+    if (!entry) {
+      entry = {
+        group: { law: legal.law, article: legal.article, items: [] },
+        seenItemKeys: new Set<string>(),
+      };
+      groups.set(key, entry);
+    }
+
+    const itemKey = `${legal.description.trim().replace(/\s+/g, ' ')}\u0000${legal.sanctionType ?? legal.sanction}`;
+    if (entry.seenItemKeys.has(itemKey)) continue;
+    entry.seenItemKeys.add(itemKey);
+    entry.group.items.push({ ruleId: finding.ruleId, legal });
+  }
+
+  return [...groups.values()].map(({ group }) => group);
+}
+
+/** 반복되는 법률 문구를 덜어 패널에 표시할 짧은 룰 요약으로 만든다. */
+export function compactLegalDescription(description: string): string {
+  return description
+    .replace(
+      /(?:으)?로 (?:관련 )?(?:안전|보호|보안)조치 의무 위반 소지가 있습니다\.?$/,
+      '',
+    )
+    .trim();
+}
+
+/** 룰 옆 괄호 안에 넣을 짧은 제재 유형을 반환한다. */
+export function compactSanctionLabel(legal: LegalRisk): string {
+  switch (legal.sanctionType) {
+    case '형사처벌':
+      return '형사처벌';
+    case '과징금·과태료':
+      return '과징금·과태료';
+    case '형사처벌, 과징금·과태료':
+      return '형사처벌/과징금·과태료';
+    case '시정명령·권고':
+      return '시정명령·권고';
+    default:
+      if (legal.sanction === 2) {
+        return '형사처벌/과징금·과태료';
+      }
+      if (legal.sanction === 1) {
+        return '과징금·과태료';
+      }
+      return '시정명령·권고';
+  }
 }
 
 export function computeRiskScore(findings: Finding[]): number {

@@ -30,9 +30,10 @@ interface Rule {
 const PIPA_29: LegalRisk = {
   law: '개인정보보호법',
   article: '§29',
-  description: '안전조치 의무 위반 가능 — 유출 시 과징금 부과 대상',
-  liability: 2, // 과징금·과태료 부과 가능한 의무조항
-  sanction: 1,  // 과징금·과태료 사례 있음
+  description: '하드코딩된 인증정보 또는 개인정보 노출',
+  liability: 3,
+  sanction: 2,
+  sanctionType: '형사처벌, 과징금·과태료',
 };
 
 const SQLI_LEGAL: LegalRisk = {
@@ -41,6 +42,7 @@ const SQLI_LEGAL: LegalRisk = {
   description: 'SQL Injection으로 개인정보 유출 가능',
   liability: 3,
   sanction: 2,
+  sanctionType: '형사처벌, 과징금·과태료',
 };
 
 const COMMAND_INJECTION_LEGAL: LegalRisk = {
@@ -49,6 +51,7 @@ const COMMAND_INJECTION_LEGAL: LegalRisk = {
   description: 'OS Command Injection',
   liability: 3,
   sanction: 2,
+  sanctionType: '형사처벌',
 };
 
 const FILE_UPLOAD_LEGAL: LegalRisk = {
@@ -57,6 +60,7 @@ const FILE_UPLOAD_LEGAL: LegalRisk = {
   description: '위험한 파일 업로드',
   liability: 3,
   sanction: 2,
+  sanctionType: '형사처벌',
 };
 
 const DESERIALIZATION_LEGAL: LegalRisk = {
@@ -65,6 +69,7 @@ const DESERIALIZATION_LEGAL: LegalRisk = {
   description: '안전하지 않은 역직렬화',
   liability: 3,
   sanction: 2,
+  sanctionType: '형사처벌',
 };
 
 const SSRF_LEGAL: LegalRisk = {
@@ -73,6 +78,7 @@ const SSRF_LEGAL: LegalRisk = {
   description: 'Server Side Request Forgery',
   liability: 3,
   sanction: 2,
+  sanctionType: '형사처벌',
 };
 
 function envVarFix(varName: string, languageId: string): { title: string; replacement: string } {
@@ -170,6 +176,7 @@ const RULES: Rule[] = [
     description: '경로 탐색',
     liability: 2,
     sanction: 2,
+    sanctionType: '형사처벌',
   },
   },
   {

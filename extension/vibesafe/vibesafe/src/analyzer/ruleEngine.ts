@@ -30,9 +30,10 @@ interface Rule {
 const PIPA_29: LegalRisk = {
   law: '개인정보보호법',
   article: '§29',
-  description: '안전조치 의무 위반 가능 — 유출 시 과징금 부과 대상',
-  liability: 2, // 과징금·과태료 부과 가능한 의무조항
-  sanction: 1,  // 과징금·과태료 사례 있음
+  description: '하드코딩된 인증정보 또는 개인정보 노출',
+  liability: 3,
+  sanction: 2,
+  sanctionType: '형사처벌, 과징금·과태료',
 };
 
 function envVarFix(varName: string, languageId: string): { title: string; replacement: string } {

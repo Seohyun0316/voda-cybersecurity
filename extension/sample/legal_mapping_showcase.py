@@ -16,7 +16,6 @@ from flask import jsonify, redirect, request
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
-
 # CWE-798: Hard-coded Credentials → 개인정보보호법 §29
 DB_PASSWORD = "production-db-password"
 API_KEY = "sk-proj-legalMapping1234567890"
@@ -90,7 +89,9 @@ def execute_system_command():
 
 def find_user(cursor):
     # CWE-89: 문자열 결합 SQL → 개인정보보호법 §29
-    return cursor.execute("SELECT * FROM users WHERE username = " + request.args["user"])
+    return cursor.execute(
+        "SELECT * FROM users WHERE username = " + request.args["user"]
+    )
 
 
 def evaluate_user_code():

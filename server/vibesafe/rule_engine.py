@@ -147,6 +147,35 @@ FIX_BY_CWE = {
     ),
 }
 
+# 감지된 위험의 두 번째 줄에 노출할 짧은 대응 안내.
+# 내부 룰 이름 대신 사용자가 바로 적용할 수 있는 권고 문구를 보여준다.
+DETAIL_BY_CWE = {
+    "CWE-20": "허용 목록 기반 입력값 검증 권장",
+    "CWE-22": "기준 디렉터리 내부의 안전한 경로만 사용 권장",
+    "CWE-77": "shell=False와 명령 인자 배열 사용 권장",
+    "CWE-78": "shell=False와 명령 인자 배열 사용 권장",
+    "CWE-79": "템플릿 자동 이스케이프 사용 권장",
+    "CWE-89": "매개변수화 쿼리 또는 ORM 사용 권장",
+    "CWE-94": "eval/exec 대신 허용 목록 기반 명령 매핑 사용 권장",
+    "CWE-200": "불필요한 개인정보·민감정보 제거 권장",
+    "CWE-201": "허용된 공개 필드만 응답에 포함 권장",
+    "CWE-209": "클라이언트에는 일반 오류 메시지만 반환 권장",
+    "CWE-256": "Argon2id 또는 bcrypt 해시 저장 권장",
+    "CWE-295": "인증서·호스트명 검증 활성화 권장",
+    "CWE-307": "계정·IP별 로그인 시도 제한 권장",
+    "CWE-327": "최신 암호 알고리즘과 검증된 라이브러리 사용 권장",
+    "CWE-330": "보안 토큰 생성 시 Python secrets 모듈 사용 권장",
+    "CWE-352": "상태 변경 요청에 CSRF 보호 기능 사용 권장",
+    "CWE-359": "실제 개인정보 제거 및 테스트용 예약 도메인 사용 권장",
+    "CWE-434": "파일명·확장자·MIME 유형·크기 검증 권장",
+    "CWE-502": "JSON과 명시적 스키마 검증 사용 권장",
+    "CWE-532": "민감정보 제거 또는 마스킹 후 로깅 권장",
+    "CWE-770": "요청 크기·반복 횟수·메모리·타임아웃 제한 권장",
+    "CWE-798": "환경변수(.env) 또는 Secrets Manager 사용 권장",
+    "CWE-862": "사용자 권한 및 대상 자원 소유권 검사 권장",
+    "CWE-918": "허용된 스킴·호스트만 서버 요청에 사용 권장",
+}
+
 
 # docs/legal-mapping.md의 "1안: CWE별 경고 문구"를 API용 한 줄
 # 문자열로 옮긴 매핑이다. 규칙 이름이나 설명과 무관하게 동일 CWE는 동일한
@@ -427,6 +456,35 @@ LEGAL_BY_CWE = {
     },
 }
 
+# docs/legal-mapping.md의 "제재 수준" 열을 사용자 표시용 문자열로 보존한다.
+SANCTION_TYPE_BY_CWE = {
+    "CWE-20": "과징금·과태료",
+    "CWE-22": "형사처벌",
+    "CWE-77": "형사처벌",
+    "CWE-78": "형사처벌",
+    "CWE-79": "과징금·과태료",
+    "CWE-89": "형사처벌, 과징금·과태료",
+    "CWE-94": "형사처벌",
+    "CWE-200": "형사처벌, 과징금·과태료",
+    "CWE-201": "과징금·과태료",
+    "CWE-209": "시정명령·권고",
+    "CWE-256": "과징금·과태료",
+    "CWE-295": "과징금·과태료",
+    # 문서 표에 없는 CWE-307은 기존 sanction 1 계약값을 따른다.
+    "CWE-307": "과징금·과태료",
+    "CWE-327": "과징금·과태료",
+    "CWE-330": "시정명령·권고",
+    "CWE-352": "과징금·과태료",
+    "CWE-359": "형사처벌, 과징금·과태료",
+    "CWE-434": "형사처벌",
+    "CWE-502": "형사처벌",
+    "CWE-532": "과징금·과태료",
+    "CWE-770": "시정명령·권고",
+    "CWE-798": "형사처벌, 과징금·과태료",
+    "CWE-862": "과징금·과태료",
+    "CWE-918": "형사처벌",
+}
+
 
 class RuleEngine:
     def __init__(self, ruleset_path: str | Path) -> None:
@@ -511,6 +569,9 @@ class RuleEngine:
             ("안전한 구현으로 교체", "탐지된 패턴을 제거하고 안전한 API를 사용하세요."),
         )
         legal = LEGAL_BY_CWE.get(primary_cwe)
+        legal_response = dict(legal) if legal else None
+        if legal_response:
+            legal_response["sanction_type"] = SANCTION_TYPE_BY_CWE[primary_cwe]
         return {
             "rule_id": rule.rule_id,
             "cwe": ", ".join(rule.cwes),
@@ -523,8 +584,11 @@ class RuleEngine:
                 primary_cwe,
                 f"{rule.description}에 해당하는 패턴이 감지되었습니다.",
             ),
-            "detail": f"{rule.name} 룰에 의해 탐지되었습니다.",
-            "legal": dict(legal) if legal else None,
+            "detail": DETAIL_BY_CWE.get(
+                primary_cwe,
+                "안전한 구현 방식 사용 권장",
+            ),
+            "legal": legal_response,
             "fix": {
                 "title": fix_title,
                 "replacement": replacement,

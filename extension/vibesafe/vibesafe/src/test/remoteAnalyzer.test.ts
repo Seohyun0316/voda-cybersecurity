@@ -30,6 +30,7 @@ test('/detect v1.0 응답을 내부 모델로 변환', () => {
             description: '안전조치 의무 위반 소지',
             liability: 2,
             sanction: 1,
+            sanction_type: '과징금·과태료',
           },
           fix: { title: '환경변수로 교체', replacement: 'API_KEY = os.environ["API_KEY"]' },
         },
@@ -47,6 +48,7 @@ test('/detect v1.0 응답을 내부 모델로 변환', () => {
   assert.strictEqual(f.startCol, 10);
   assert.strictEqual(f.endCol, 30);
   assert.strictEqual(f.legal?.liability, 2, '구조화된 legal 그대로 전달');
+  assert.strictEqual(f.legal?.sanctionType, '과징금·과태료', '표시용 제재 유형 변환');
   assert.strictEqual(f.fix?.replacement, 'API_KEY = os.environ["API_KEY"]');
   assert.strictEqual(result.riskScore, 75, '백엔드 전체 점수 사용');
   assert.strictEqual(result.engine, 'remote');

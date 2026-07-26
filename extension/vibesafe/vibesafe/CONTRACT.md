@@ -14,7 +14,7 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 | ruleId | kebab-case 영문 (예: `hardcoded-password`). 룰 추가 시 F2가 명명 |
 | message | 한국어, 한 줄, "무엇이 위험한지" (예: `하드코딩 비밀번호 — 개인정보보호법 §29`) |
 | detail | 한국어, 한 줄, "어떻게 고치는지" (예: `환경변수(.env) 사용 권장`) |
-| legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction }` — liability/sanction은 아래 표의 값 필수 |
+| legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction, sanctionType? }` — liability/sanction은 아래 표의 값 필수 |
 | fix.replacement | 해당 범위(line, startCol~endCol)를 **통째로 대체**할 문자열 |
 | analyzedAt | ISO 8601 문자열 |
 
@@ -59,7 +59,7 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 | finding | `{ rule_id, cwe?, category, severity(high\|medium\|low), line, start_col, end_col, message, detail?, risk_score?, legal?, fix? }` |
 | 좌표 | `line`, `start_col`, `end_col` 모두 **0-based** (VS Code 기준 — 변환 없음) |
 | severity 매핑 | high → error, medium → warning, low → info (어댑터 고정) |
-| legal | `{ law, article, description, liability(1~3), sanction(0.5~2) }` — §1 표 값 사용, legal-mapping.md 기준 |
+| legal | `{ law, article, description, liability(1~3), sanction(0.5~2), sanction_type? }` — §1 표 값 및 legal-mapping.md의 표시용 제재 유형 사용 |
 | risk_score | §1 공식으로 백엔드가 계산. 생략 시 클라이언트가 동일 공식으로 계산 |
 | 오류 | 4xx/5xx + `{ "error": "메시지" }` |
 | 타임아웃 | 클라이언트 10초. 초과·실패 시 로컬 규칙 엔진으로 자동 폴백 |

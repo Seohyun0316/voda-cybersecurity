@@ -14,7 +14,7 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 | ruleId | kebab-case 영문 (예: `hardcoded-password`). 룰 추가 시 F2가 명명 |
 | message | 한국어, 한 줄, "무엇이 위험한지" (예: `하드코딩 비밀번호 — 개인정보보호법 §29`) |
 | detail | 한국어, 한 줄, "어떻게 고치는지" (예: `환경변수(.env) 사용 권장`) |
-| legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction }` — liability/sanction은 아래 표의 값 필수 |
+| legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction, sanctionType? }` — liability/sanction은 아래 표의 값 필수 |
 | fix.replacement | 해당 범위(line, startCol~endCol)를 **통째로 대체**할 문자열 |
 | analyzedAt | ISO 8601 문자열 |
 
@@ -59,7 +59,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 | 좌표 | `line`, `start_col`, `end_col` 모두 0-based, `end_col`은 exclusive |
 | severity 매핑 | high → error, medium → warning, low → info |
 | category | 백엔드 상세 카테고리를 `api-spec.md` 표에 따라 다섯 UI 카테고리로 변환 |
-| legal | `liability`, `sanction`은 MVP에서 `null` 허용 |
+| legal | `liability`, `sanction`은 MVP에서 `null` 허용. 표시용 제재 유형은 API의 `sanction_type`을 사용 |
 | fix | 지정 범위에 바로 적용 가능한 실행 코드일 때만 허용 |
 | ML | 룰 후보의 2차 필터이며 확률은 응답에 노출하지 않음 |
 | risk_score | 서버 정책 미정이면 `null`; 클라이언트가 §1 공식으로 계산 |

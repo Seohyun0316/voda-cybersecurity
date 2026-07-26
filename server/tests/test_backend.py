@@ -5,8 +5,10 @@ import pytest
 from app import create_app
 from vibesafe.rule_engine import (
     CATEGORY_BY_CWE,
+    DETAIL_BY_CWE,
     FIX_BY_CWE,
     LEGAL_BY_CWE,
+    SANCTION_TYPE_BY_CWE,
     WARNING_BY_CWE,
     CompiledRule,
     RuleEngine,
@@ -54,6 +56,8 @@ def test_detect_returns_candidate_accepted_by_ml_filter(client):
     assert finding["start_col"] == 0
     assert finding["end_col"] == len(code)
     assert finding["legal"]["law"] == "개인정보보호법"
+    assert finding["legal"]["sanction_type"] == "형사처벌, 과징금·과태료"
+    assert finding["detail"] == "환경변수(.env) 또는 Secrets Manager 사용 권장"
     assert finding["fix"]["title"] == "환경변수로 교체"
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T.*Z", body["analyzed_at"])
 
@@ -170,6 +174,7 @@ def test_every_documented_cwe_has_hardcoded_finding_metadata():
     documented_cwes = set(expected_weights)
 
     assert set(CATEGORY_BY_CWE) == documented_cwes
+    assert set(DETAIL_BY_CWE) == documented_cwes
     assert set(FIX_BY_CWE) == documented_cwes
     assert set(WARNING_BY_CWE) == documented_cwes
     assert set(LEGAL_BY_CWE) == documented_cwes
@@ -190,9 +195,15 @@ def test_every_documented_cwe_has_hardcoded_finding_metadata():
         legal = finding["legal"]
 
         assert finding["category"] == CATEGORY_BY_CWE[cwe]
+        assert finding["detail"] == DETAIL_BY_CWE[cwe]
+        assert finding["detail"].endswith("권장")
+        assert "룰에 의해 탐지되었습니다" not in finding["detail"]
         assert finding["message"] == WARNING_BY_CWE[cwe]
         assert finding["fix"]["title"] == FIX_BY_CWE[cwe][0]
-        assert legal == LEGAL_BY_CWE[cwe]
+        assert {
+            key: value for key, value in legal.items() if key != "sanction_type"
+        } == LEGAL_BY_CWE[cwe]
+        assert legal["sanction_type"] == SANCTION_TYPE_BY_CWE[cwe]
         assert legal["liability"] + legal["sanction"] == expected_weight
         assert "위반 소지가 있습니다" in legal["description"]
 
@@ -203,6 +214,7 @@ def test_every_active_rule_uses_a_documented_legal_mapping():
     for rule in engine.rules:
         assert rule.cwes
         assert rule.cwes[0] in LEGAL_BY_CWE
+        assert rule.cwes[0] in SANCTION_TYPE_BY_CWE
 
 
 def test_critical_deserialization_rule_is_normalized_to_high():

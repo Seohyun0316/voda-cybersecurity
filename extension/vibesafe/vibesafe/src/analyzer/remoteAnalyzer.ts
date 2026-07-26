@@ -11,6 +11,7 @@ import {
   Category,
   Finding,
   LiabilityLevel,
+  SanctionType,
   SanctionLevel,
   Severity,
   computeRiskScore,
@@ -23,6 +24,7 @@ export interface DetectLegal {
   description: string;
   liability: LiabilityLevel; // 1~3 (CONTRACT.md §1 표)
   sanction: SanctionLevel;   // 0.5~2
+  sanction_type?: SanctionType;
 }
 
 export interface DetectFinding {
@@ -76,7 +78,16 @@ export function mapDetectResponse(
     line: d.line,
     startCol: d.start_col ?? 0,
     endCol: d.end_col ?? d.start_col + 1,
-    legal: d.legal,
+    legal: d.legal
+      ? {
+          law: d.legal.law,
+          article: d.legal.article,
+          description: d.legal.description,
+          liability: d.legal.liability,
+          sanction: d.legal.sanction,
+          sanctionType: d.legal.sanction_type,
+        }
+      : undefined,
     fix: d.fix,
   }));
 

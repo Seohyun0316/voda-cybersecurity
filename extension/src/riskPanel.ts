@@ -4,7 +4,14 @@
  * 법적 리스크 + 과금 경보 + 자동 수정 버튼.
  */
 import * as vscode from 'vscode';
-import { AnalysisResult, Finding, riskLabel } from './analyzer';
+import {
+  AnalysisResult,
+  Finding,
+  compactLegalDescription,
+  compactSanctionLabel,
+  groupLegalRisks,
+  riskLabel,
+} from './analyzer';
 
 interface PanelCallbacks {
   onApplyFixes: () => void;
@@ -51,7 +58,7 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     const r = this.lastResult;
     const score = r?.riskScore ?? 0;
     const findings = r?.findings ?? [];
-    const legal = findings.filter((f) => f.legal);
+    const legal = groupLegalRisks(findings);
     const cost = findings.filter((f) => f.category === 'cost');
     const scoreColor = score >= 70 ? '#f48771' : score >= 40 ? '#f0a500' : '#4caf50';
 
@@ -67,10 +74,17 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
 
     const legalItems = legal
       .map(
-        (f) => `
+        (group) => `
         <div class="item">
           <span class="icon legal">⚖️</span>
-          <div class="text">${escapeHtml(f.legal!.law)} ${escapeHtml(f.legal!.article)}<small>${escapeHtml(f.legal!.description)}</small></div>
+          <div class="text">${escapeHtml(group.law)} ${escapeHtml(group.article)}
+            <ul class="legal-list">${group.items
+              .map(
+                ({ legal: item }) =>
+                  `<li>${escapeHtml(`${compactLegalDescription(item.description)} (${compactSanctionLabel(item)} 가능)`)}</li>`,
+              )
+              .join('')}</ul>
+          </div>
         </div>`,
       )
       .join('');
@@ -123,6 +137,8 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   .icon { flex-shrink: 0; font-size: 12px; }
   .text { line-height: 1.4; }
   .text small { display: block; color: var(--vscode-descriptionForeground); font-size: 10px; }
+  .legal-list { margin: 2px 0 0; padding-left: 14px; color: var(--vscode-descriptionForeground); font-size: 10px; line-height: 1.4; }
+  .legal-list li { margin: 1px 0; }
   .empty { color: var(--vscode-descriptionForeground); padding: 4px 0; line-height: 1.6; }
   button { width: 100%; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; padding: 6px; cursor: pointer; font-weight: 600; }
   button:hover { background: var(--vscode-button-hoverBackground); }
