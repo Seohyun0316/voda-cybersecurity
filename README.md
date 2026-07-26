@@ -17,14 +17,14 @@ ChatGPT, Claude, Cursor 등이 생성한 코드에는 하드코딩된 API 키, �
 
 OWASP Top 10 (2025), CWE Top 25, OWASP LLM Top 10 기반
 
-| 카테고리 | 주요 CWE |
-|---|---|
-| PII 노출 (자체 추가) | CWE-359, 200, 532, 201, 598, 209 |
-| 보안 오설정 (A02) | CWE-352, 434, 862, 295* |
-| 암호화 실패 (A04) | CWE-798, 256, 327, 330, 200 |
-| 인젝션 — Input (A05) | CWE-20, 77, 78, 89, 94 |
-| 인젝션 — Output (A05) | CWE-79, 502, 918 |
-| 예외 처리 (A10) | CWE-770 |
+| 카테고리               | 주요 CWE                         |
+| ---------------------- | -------------------------------- |
+| PII 노출 (자체 추가)   | CWE-359, 200, 532, 201, 598, 209 |
+| 보안 오설정 (A02)      | CWE-352, 434, 862, 295*          |
+| 암호화 실패 (A04)      | CWE-798, 256, 327, 330, 200      |
+| 인젝션 — Input (A05)  | CWE-20, 77, 78, 89, 94           |
+| 인젝션 — Output (A05) | CWE-79, 502, 918                 |
+| 예외 처리 (A10)        | CWE-770                          |
 
 ## 아키텍처
 
@@ -66,10 +66,10 @@ voda-cybersecurity/
 └── .github/workflows/      # CI (룰셋 자동 검증)
 ```
 
-
 ## 시작하기
 
 ### 서버 실행
+
 ```bash
 cd server
 pip install -r requirements.txt
@@ -77,6 +77,7 @@ python app.py
 ```
 
 ### 익스텐션 실행 (개발 모드)
+
 ```bash
 cd extension
 npm install
@@ -84,6 +85,7 @@ npm install
 ```
 
 ### 룰셋 검증
+
 ```bash
 cd ruleset
 python validate.py && python smoke.py && python perf_coverage.py
@@ -92,6 +94,7 @@ python validate.py && python smoke.py && python perf_coverage.py
 ## 팀
 
 VODA 사이버보안팀 (6인)
+
 - **PM**: 양서현
 - **ML/Backend**: 김현빈, 박은진
 - **Frontend/Extension**: 김수린, 안태훈

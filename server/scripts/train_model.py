@@ -1,4 +1,4 @@
-"""Train and save the selected 10-feature XGBoost bundle."""
+"""Train the deployed 10-feature XGBoost bundle from the augmented dataset."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import sys
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DATASET = PROJECT_ROOT / "final_binary_set.jsonl"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -73,8 +74,16 @@ def train(dataset_path: Path, output_path: Path) -> dict[str, float]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train the VibeSafe 10-feature model.")
-    parser.add_argument("dataset", type=Path)
+    parser = argparse.ArgumentParser(
+        description="Train the VibeSafe 10-feature model from the augmented dataset."
+    )
+    parser.add_argument(
+        "dataset",
+        type=Path,
+        nargs="?",
+        default=DEFAULT_DATASET,
+        help=f"10-feature JSONL dataset (default: {DEFAULT_DATASET})",
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -82,7 +91,12 @@ def main() -> None:
     )
     args = parser.parse_args()
     metrics = train(args.dataset, args.output)
-    print(json.dumps({"output": str(args.output), **metrics}, indent=2))
+    print(
+        json.dumps(
+            {"dataset": str(args.dataset), "output": str(args.output), **metrics},
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

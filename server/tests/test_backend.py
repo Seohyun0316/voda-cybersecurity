@@ -20,7 +20,7 @@ def test_health_reports_rule_and_model_readiness(client):
     assert response.status_code == 200
     body = response.get_json()
     assert body["status"] == "ok"
-    assert body["rule_engine"] == {"status": "ready", "rules_loaded": 32}
+    assert body["rule_engine"] == {"status": "ready", "rules_loaded": 29}
     assert body["ml"]["status"] == "ready"
     assert body["ml"]["available"] is True
     assert body["ml"]["feature_count"] == 10
@@ -28,7 +28,7 @@ def test_health_reports_rule_and_model_readiness(client):
     assert body["ml"]["risk_score_policy"] == "pending_team_decision"
 
 
-def test_detect_returns_rule_finding_and_pending_score(client):
+def test_detect_returns_candidate_accepted_by_ml_filter(client):
     code = 'password = "super-secret-value"'
     response = client.post(
         "/detect",
@@ -39,6 +39,7 @@ def test_detect_returns_rule_finding_and_pending_score(client):
     body = response.get_json()
     finding = next(item for item in body["findings"] if item["rule_id"] == "A04-798-001")
     assert body["risk_score"] is None
+    assert "ml_probability" not in finding
     assert finding["cwe"] == "CWE-798"
     assert finding["category"] == "secret"
     assert finding["severity"] == "high"
@@ -48,6 +49,21 @@ def test_detect_returns_rule_finding_and_pending_score(client):
     assert finding["legal"]["law"] == "개인정보보호법"
     assert finding["fix"]["title"] == "환경변수로 교체"
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T.*Z", body["analyzed_at"])
+
+
+def test_detect_returns_pending_risk_when_no_rule_candidate_exists(client):
+    response = client.post(
+        "/detect",
+        json={
+            "code": "def add(left, right):\n    return left + right",
+            "language": "python",
+            "file_name": "math_utils.py",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["findings"] == []
+    assert response.get_json()["risk_score"] is None
 
 
 def test_detect_uses_zero_based_line_and_column(client):
@@ -108,9 +124,10 @@ def test_project_rule_scope():
         "A05-918-002",
         "A05-918-005",
         "A10-770-001",
+        "A04-256-001",
+        "A04-798-004",
+        "A10-770-003",
     }
-    rule_only_ids = {"A04-256-001", "A04-798-004", "A10-770-003"}
 
-    assert len(active_rule_ids) == 32
+    assert len(active_rule_ids) == 29
     assert excluded_rule_ids.isdisjoint(active_rule_ids)
-    assert rule_only_ids <= active_rule_ids

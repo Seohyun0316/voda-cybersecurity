@@ -4,12 +4,15 @@ VibeSafe 서버는 Python 소스 코드에서 보안 취약 가능성을 탐지�
 
 ## 현재 상태
 
-- Python 분석 및 프로젝트 활성 룰 32개 지원
-- 10피처 XGBoost 모델과 룰별 취약 확률 계산 지원
-- ML 학습 룰 29개와 의도적 룰 전용 탐지 3개 지원
+- Python 분석 및 프로젝트 활성 룰 29개 지원
+- GitHub 표본 702건, LLM 생성 299건, 보강 표본 23건을 합친 1,024건 데이터로 학습
+- 보강된 10피처 XGBoost 모델과 룰별 취약 확률 계산 지원
+- 활성 룰 29개와 ML 학습 룰 29개 일치
 - `GET /health`, `POST /detect` 제공
-- 자동 테스트 14개 통과
-- 확률 합산 정책 미정으로 `risk_score`는 현재 `null`
+- 자동 테스트 13개 통과
+- 모델 확률은 서버 내부에서 정규식 후보를 2차 필터링하는 데만 사용
+- 모델이 취약 확률 0.5 이상으로 판정한 후보만 `findings`로 반환
+- 위험도 정책 미정으로 `risk_score`는 현재 `null`
 
 ## 구조
 
@@ -17,6 +20,7 @@ VibeSafe 서버는 Python 소스 코드에서 보안 취약 가능성을 탐지�
 server/
 |-- app.py                         # 로컬 서버 진입점
 |-- config/ruleset.toml            # 탐지 룰
+|-- final_binary_set.jsonl         # 1,024건 보강 학습 데이터셋
 |-- models/xgboost_10f/
 |   |-- source_bundle.pkl          # 신뢰된 원본 모델 bundle
 |   |-- model.json                 # 런타임 모델
@@ -64,7 +68,7 @@ Content-Type: application/json
 }
 ```
 
-모델은 룰 후보별 확률을 계산하지만 여러 확률을 하나의 위험 점수로 합치는 기준이 아직 없어 `risk_score`는 의도적으로 `null`을 반환합니다.
+모델은 룰 후보별 취약 확률을 서버 내부에서 계산하고, 확률이 0.5 이상인 후보만 최종 `findings`에 포함합니다. 응답의 `findings` 구조는 변경하지 않으며, ML 결과는 `risk_score`에 반영하지 않습니다. 최종 위험도 정책이 아직 정해지지 않아 `risk_score`는 `null`을 반환합니다.
 
 ## 테스트
 
@@ -73,7 +77,7 @@ python -m pip install -r requirements-dev.txt
 python -B -m pytest -p no:cacheprovider -q
 ```
 
-정상 결과는 `14 passed`입니다. ML만 확인하려면 다음을 실행합니다.
+정상 결과는 `15 passed`입니다. ML만 확인하려면 다음을 실행합니다.
 
 ```powershell
 python scripts/predict_model.py A04-798-001 --code 'password = "secret-value"'
@@ -84,6 +88,13 @@ python scripts/predict_model.py A04-798-001 --code 'password = "secret-value"'
 운영 서버는 pickle을 직접 읽지 않고 `model.json`과 `metadata.json`을 사용합니다. Pickle은 임의 코드를 실행할 수 있으므로 신뢰할 수 있는 `source_bundle.pkl`만 다음 명령으로 변환해야 합니다.
 
 ```powershell
+python scripts/convert_model.py
+```
+
+현재 모델은 루트의 `final_binary_set.jsonl`을 기본 입력으로 사용합니다. 같은 설정으로 다시 학습하고 운영 모델을 갱신하려면 다음 두 명령을 순서대로 실행합니다.
+
+```powershell
+python scripts/train_model.py
 python scripts/convert_model.py
 ```
 

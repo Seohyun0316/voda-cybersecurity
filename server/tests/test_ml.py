@@ -10,6 +10,7 @@ from vibesafe.ml.predictor import Predictor
 
 
 MODEL_DIR = Path("models/xgboost_10f")
+EXPECTED_SECRET_PROBABILITY = 0.961687445640564
 
 
 def test_feature_extractor_returns_training_order():
@@ -43,25 +44,51 @@ def test_predictor_scores_known_rule():
     assert predictor.available is True
     assert predictor.knows_rule("A04-798-001") is True
     probability = predictor.predict_vulnerable_probability("A04-798-001", features)
-    assert probability == pytest.approx(0.75209355, abs=1e-6)
+    assert probability == pytest.approx(EXPECTED_SECRET_PROBABILITY, abs=1e-6)
 
 
-def test_predictor_handles_rule_unseen_during_training():
-    predictor = Predictor(DEFAULT_MODEL, DEFAULT_MODEL_METADATA)
-    features = extract_features(
-        'user = User(password=request.form["password"]); db.session.add(user)'
-    )
+# 프로젝트에서 미학습 룰을 모두 제외하여 더 이상 활성 룰 대상 테스트가 아니다.
+# def test_predictor_handles_rule_unseen_during_training():
+#     predictor = Predictor(DEFAULT_MODEL, DEFAULT_MODEL_METADATA)
+#     features = extract_features(
+#         'user = User(password=request.form["password"]); db.session.add(user)'
+#     )
+#
+#     assert predictor.knows_rule("A04-256-001") is False
+#     probability = predictor.predict_vulnerable_probability("A04-256-001", features)
+#     assert 0.0 <= probability <= 1.0
 
-    assert predictor.knows_rule("A04-256-001") is False
-    probability = predictor.predict_vulnerable_probability("A04-256-001", features)
-    assert 0.0 <= probability <= 1.0
 
-
-def test_detector_exposes_probabilities_without_aggregating():
+def test_detector_keeps_candidate_that_model_classifies_as_vulnerable():
     detector = Detector()
     code = 'password = "super-secret-value"'
     result = detector.detect(code, "python", "auth.py")
 
-    scores = detector.score_candidates(code, result["findings"])
+    finding = next(
+        item for item in result["findings"] if item["rule_id"] == "A04-798-001"
+    )
+    assert "ml_probability" not in finding
     assert result["risk_score"] is None
-    assert scores["A04-798-001"] == pytest.approx(0.75209355, abs=1e-6)
+
+
+def test_detector_removes_candidate_that_model_classifies_as_safe():
+    class SafePredictor:
+        available = True
+
+        @staticmethod
+        def knows_rule(rule_id):
+            return True
+
+        @staticmethod
+        def predict_vulnerable_probability(rule_id, features):
+            return 0.49
+
+    detector = Detector()
+    detector.predictor = SafePredictor()
+
+    result = detector.detect(
+        'password = "super-secret-value"', "python", "auth.py"
+    )
+
+    assert result["findings"] == []
+    assert result["risk_score"] is None
