@@ -97,6 +97,28 @@ def test_detect_uses_zero_based_line_and_column(client):
     assert finding["start_col"] == 4
 
 
+def test_detect_uses_utf16_columns_for_non_bmp_characters(client):
+    emoji = chr(0x1F600)
+    code = f'prefix = "{emoji}"; password = "secret-{emoji}-value"'
+    response = client.post(
+        "/detect",
+        json={"code": code, "language": "python", "file_name": "unicode.py"},
+    )
+
+    assert response.status_code == 200
+    finding = next(
+        item
+        for item in response.get_json()["findings"]
+        if item["rule_id"] == "A04-798-001"
+    )
+    match_start = code.index("password")
+
+    assert finding["start_col"] == len(
+        code[:match_start].encode("utf-16-le")
+    ) // 2
+    assert finding["end_col"] == len(code.encode("utf-16-le")) // 2
+
+
 @pytest.mark.parametrize(
     "payload,error_fragment",
     [

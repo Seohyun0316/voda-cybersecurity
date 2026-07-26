@@ -18,7 +18,6 @@ import { VibeSafeCodeActionProvider, applyAllFixes } from './codeActions';
 const SUPPORTED = new Set(['python', 'javascript', 'typescript', 'javascriptreact', 'typescriptreact', 'java', 'go', 'php', 'ruby']);
 
 export function activate(context: vscode.ExtensionContext): void {
-  let analyzer: Analyzer = createAnalyzer();
   const diagnostics = new DiagnosticsManager(context);
   const statusBar = new StatusBarManager(context);
   const codeActions = new VibeSafeCodeActionProvider();
@@ -42,7 +41,7 @@ export function activate(context: vscode.ExtensionContext): void {
   /** 검사 1회 실행 — 유일한 분석 진입점 (버튼/명령에서만 호출됨) */
   async function runScan(
     retrying = false,
-    activeAnalyzer: Analyzer = analyzer,
+    activeAnalyzer?: Analyzer,
   ): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -54,10 +53,11 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.window.showInformationMessage(`VibeSafe: 지원하지 않는 파일 형식입니다 (${doc.languageId}).`);
       return;
     }
+    const selectedAnalyzer = activeAnalyzer ?? createAnalyzer(doc.languageId);
 
     statusBar.setScanning();
     try {
-      const result = await activeAnalyzer.analyze(
+      const result = await selectedAnalyzer.analyze(
         doc.getText(),
         doc.fileName,
         doc.languageId,
@@ -71,7 +71,7 @@ export function activate(context: vscode.ExtensionContext): void {
         statusBar.setIdle();
         return;
       }
-      if (activeAnalyzer.kind !== 'remote') {
+      if (selectedAnalyzer.kind !== 'remote') {
         statusBar.setIdle();
         vscode.window.showErrorMessage(
           `VibeSafe: 로컬 분석 실패 (${err instanceof Error ? err.message : err}).`,
@@ -94,11 +94,6 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     // 파일 전환 시 상태바만 대기 상태로 되돌림 (이미 검사한 파일의 밑줄은 유지)
     vscode.window.onDidChangeActiveTextEditor(() => statusBar.setIdle()),
-    vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('vibesafe.engine') || e.affectsConfiguration('vibesafe.remoteEndpoint')) {
-        analyzer = createAnalyzer();
-      }
-    }),
   );
 }
 

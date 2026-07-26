@@ -8,7 +8,7 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 
 | 항목 | 확정값 |
 |---|---|
-| 위치 좌표 | `line`, `startCol`, `endCol` 모두 **0-based** (VS Code API 기준) |
+| 위치 좌표 | `line`, `startCol`, `endCol` 모두 **0-based UTF-16 code unit** (VS Code API 기준) |
 | severity | `error` \| `warning` \| `info` 세 가지만. 추가 금지 |
 | category | `secret` \| `injection` \| `crypto` \| `cost` \| `other` 다섯 가지만 |
 | ruleId | kebab-case 영문 (예: `hardcoded-password`). 룰 추가 시 F2가 명명 |
@@ -80,7 +80,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 
 ## 5. 동작 스펙
 
-- 지원 언어: python, javascript, typescript, javascriptreact, typescriptreact, java, go, php, ruby (`extension.ts`의 `SUPPORTED`). 추가는 공동 합의
+- 지원 언어: python, javascript, typescript, javascriptreact, typescriptreact, java, go, php, ruby (`extension.ts`의 `SUPPORTED`). Python은 remote 백엔드, 나머지는 로컬 룰 엔진으로 직접 라우팅
 - 분석 트리거: **수동 검사만** (팀 확정) — 에디터 타이틀 방패 버튼, 사이드 패널 "▶ 현재 파일 검사" 버튼, 상태바 클릭, 명령 팔레트. 자동 검사 없음
 - 검사 대상: 현재 열린 파일 하나. 서버는 로컬호스트에서 별도 실행 (extension이 켜고 끄지 않음, 서버 다운 시 로컬 룰 폴백)
 - 미지원 파일: 검사 시 안내 메시지 표시

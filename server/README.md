@@ -9,7 +9,7 @@ VibeSafe 서버는 Python 소스 코드에서 보안 취약 가능성을 탐지�
 - 보강된 10피처 XGBoost 모델과 룰별 취약 확률 계산 지원
 - 활성 룰 29개와 ML 학습 룰 29개 일치
 - `GET /health`, `POST /detect` 제공
-- 자동 테스트 42개 통과
+- 자동 테스트 43개 통과
 - 모델 확률은 서버 내부에서 정규식 후보를 2차 필터링하는 데만 사용
 - 모델이 취약 확률 0.5 이상으로 판정한 후보만 `findings`로 반환
 - PDF 기준 CWE별 위험도 점수와 현재 findings 중 최대 `risk_score` 반환
@@ -78,7 +78,7 @@ python -m pip install -r requirements-dev.txt
 python -B -m pytest -p no:cacheprovider -q
 ```
 
-정상 결과는 `42 passed`입니다. ML만 확인하려면 다음을 실행합니다.
+정상 결과는 `43 passed`입니다. ML만 확인하려면 다음을 실행합니다.
 
 ```powershell
 python scripts/predict_model.py A04-798-001 --code 'password = "secret-value"'

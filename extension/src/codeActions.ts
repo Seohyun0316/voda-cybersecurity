@@ -84,7 +84,7 @@ export async function applyAllFixes(result: AnalysisResult | undefined): Promise
   // 교체 문자열의 길이가 달라져도 다음 항목의 위치가 정확하도록 조용히 재분석한다.
   try {
     const doc = editor.document;
-    const analyzer = createAnalyzer();
+    const analyzer = createAnalyzer(doc.languageId);
     const updatedResult = await analyzer.analyze(doc.getText(), doc.fileName, doc.languageId);
     result.findings = updatedResult.findings;
   } catch {

@@ -6,12 +6,13 @@ import * as vscode from 'vscode';
 import { Analyzer } from './types';
 import { RuleEngineAnalyzer } from './ruleEngine';
 import { RemoteAnalyzer } from './remoteAnalyzer';
+import { resolveAnalyzerKind } from './routing';
 
-export function createAnalyzer(): Analyzer {
+export function createAnalyzer(languageId?: string): Analyzer {
   const config = vscode.workspace.getConfiguration('vibesafe');
   const engine = config.get<string>('engine', 'remote');
 
-  if (engine === 'remote') {
+  if (resolveAnalyzerKind(engine, languageId) === 'remote') {
     const endpoint = config.get<string>('remoteEndpoint', 'http://localhost:5000/detect');
     return new RemoteAnalyzer(endpoint);
   }

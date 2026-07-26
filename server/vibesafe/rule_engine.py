@@ -629,7 +629,8 @@ def _coordinates(
     code: str, line_starts: list[int], start: int, end: int
 ) -> tuple[int, int, int]:
     line = bisect_right(line_starts, start) - 1
-    start_col = start - line_starts[line]
+    line_start = line_starts[line]
+    start_col = _utf16_length(code[line_start:start])
 
     # The response contract has no end_line. For a multi-line match, highlight
     # from the start column to the end of the first matched line.
@@ -637,5 +638,10 @@ def _coordinates(
     visible_end = next_newline if next_newline != -1 else end
     if visible_end > start and code[visible_end - 1 : visible_end] == "\r":
         visible_end -= 1
-    end_col = visible_end - line_starts[line]
+    end_col = _utf16_length(code[line_start:visible_end])
     return line, start_col, max(start_col, end_col)
+
+
+def _utf16_length(value: str) -> int:
+    """Return the number of UTF-16 code units used by VS Code positions."""
+    return len(value.encode("utf-16-le")) // 2
