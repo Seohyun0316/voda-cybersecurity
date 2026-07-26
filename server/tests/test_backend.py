@@ -3,7 +3,14 @@ import re
 import pytest
 
 from app import create_app
-from vibesafe.rule_engine import RuleEngine
+from vibesafe.rule_engine import (
+    CATEGORY_BY_CWE,
+    FIX_BY_CWE,
+    LEGAL_BY_CWE,
+    WARNING_BY_CWE,
+    CompiledRule,
+    RuleEngine,
+)
 
 
 @pytest.fixture()
@@ -131,3 +138,68 @@ def test_project_rule_scope():
 
     assert len(active_rule_ids) == 29
     assert excluded_rule_ids.isdisjoint(active_rule_ids)
+
+
+def test_every_documented_cwe_has_hardcoded_finding_metadata():
+    expected_weights = {
+        "CWE-20": 4,
+        "CWE-22": 4,
+        "CWE-77": 5,
+        "CWE-78": 5,
+        "CWE-79": 4,
+        "CWE-89": 5,
+        "CWE-94": 5,
+        "CWE-200": 5,
+        "CWE-201": 3,
+        "CWE-209": 1.5,
+        "CWE-256": 4,
+        "CWE-295": 4,
+        "CWE-307": 3,
+        "CWE-327": 4,
+        "CWE-330": 1.5,
+        "CWE-352": 4,
+        "CWE-359": 5,
+        "CWE-434": 5,
+        "CWE-502": 5,
+        "CWE-532": 4,
+        "CWE-770": 1.5,
+        "CWE-798": 5,
+        "CWE-862": 4,
+        "CWE-918": 5,
+    }
+    documented_cwes = set(expected_weights)
+
+    assert set(CATEGORY_BY_CWE) == documented_cwes
+    assert set(FIX_BY_CWE) == documented_cwes
+    assert set(WARNING_BY_CWE) == documented_cwes
+    assert set(LEGAL_BY_CWE) == documented_cwes
+
+    for cwe, expected_weight in expected_weights.items():
+        rule = CompiledRule(
+            rule_id=f"TEST-{cwe}",
+            name="테스트 규칙",
+            description="테스트 설명",
+            severity="high",
+            cwes=(cwe,),
+            pattern=re.compile("unsafe"),
+            allowlist=(),
+            path_allowlist=(),
+        )
+
+        finding = RuleEngine._to_finding(rule, line=0, start_col=0, end_col=6)
+        legal = finding["legal"]
+
+        assert finding["category"] == CATEGORY_BY_CWE[cwe]
+        assert finding["message"] == WARNING_BY_CWE[cwe]
+        assert finding["fix"]["title"] == FIX_BY_CWE[cwe][0]
+        assert legal == LEGAL_BY_CWE[cwe]
+        assert legal["liability"] + legal["sanction"] == expected_weight
+        assert "위반 소지가 있습니다" in legal["description"]
+
+
+def test_every_active_rule_uses_a_documented_legal_mapping():
+    engine = RuleEngine("config/ruleset.toml")
+
+    for rule in engine.rules:
+        assert rule.cwes
+        assert rule.cwes[0] in LEGAL_BY_CWE
