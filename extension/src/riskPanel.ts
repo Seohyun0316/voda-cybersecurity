@@ -11,6 +11,7 @@ import {
   groupLegalRisks,
   riskLabel,
 } from './analyzer';
+import { DocumentSnapshot } from './documentSnapshot';
 
 interface PanelCallbacks {
   onApplyFixes: () => void;
@@ -22,6 +23,7 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
 
   private view?: vscode.WebviewView;
   private lastResult?: AnalysisResult;
+  private lastSnapshot?: DocumentSnapshot;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -42,13 +44,18 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     view.webview.html = this.render();
   }
 
-  update(result: AnalysisResult): void {
+  update(result: AnalysisResult, snapshot: DocumentSnapshot): void {
     this.lastResult = result;
+    this.lastSnapshot = snapshot;
     if (this.view) this.view.webview.html = this.render();
   }
 
   getLastResult(): AnalysisResult | undefined {
     return this.lastResult;
+  }
+
+  getLastSnapshot(): DocumentSnapshot | undefined {
+    return this.lastSnapshot;
   }
 
   private async gotoLine(line: number): Promise<void> {
