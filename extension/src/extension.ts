@@ -14,6 +14,7 @@ import { RiskPanelProvider } from './riskPanel';
 import { StatusBarManager } from './statusBar';
 import { VibeSafeCodeActionProvider, applyAllFixes } from './codeActions';
 import { createDocumentSnapshot } from './documentSnapshot';
+import { isAnalysisResultCurrent } from './analysisFreshness';
 
 /** 분석 대상 언어 */
 const SUPPORTED = new Set(['python', 'javascript', 'typescript', 'javascriptreact', 'typescriptreact', 'java', 'go', 'php', 'ruby']);
@@ -22,6 +23,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const diagnostics = new DiagnosticsManager(context);
   const statusBar = new StatusBarManager(context);
   const codeActions = new VibeSafeCodeActionProvider();
+  let latestScanId = 0;
   const panel = new RiskPanelProvider(
     context.extensionUri,
     {
@@ -46,7 +48,9 @@ export function activate(context: vscode.ExtensionContext): void {
   async function runScan(
     retrying = false,
     activeAnalyzer?: Analyzer,
+    existingScanId?: number,
   ): Promise<void> {
+    const scanId = existingScanId ?? ++latestScanId;
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       vscode.window.showInformationMessage('VibeSafe: 검사할 파일을 먼저 열어주세요.');
@@ -72,11 +76,19 @@ export function activate(context: vscode.ExtensionContext): void {
         doc.fileName,
         doc.languageId,
       );
+      if (!isCurrentScan(scanId, analyzedSnapshot)) {
+        if (scanId === latestScanId) statusBar.setIdle();
+        return;
+      }
       diagnostics.update(doc.uri, result);
       codeActions.setResult(result, analyzedSnapshot);
       statusBar.update(result);
       panel.update(result, analyzedSnapshot);
     } catch (err) {
+      if (!isCurrentScan(scanId, analyzedSnapshot)) {
+        if (scanId === latestScanId) statusBar.setIdle();
+        return;
+      }
       if (retrying) {
         statusBar.setIdle();
         return;
@@ -93,8 +105,29 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.window.showWarningMessage(
         `VibeSafe: 백엔드 분석 실패 (${err instanceof Error ? err.message : err}). 이번 검사만 로컬 규칙 엔진을 사용합니다.`,
       );
-      await runScan(true, new RuleEngineAnalyzer());
+      await runScan(true, new RuleEngineAnalyzer(), scanId);
     }
+  }
+
+  function isCurrentScan(
+    scanId: number,
+    analyzedSnapshot: ReturnType<typeof createDocumentSnapshot>,
+  ): boolean {
+    const activeDocument = vscode.window.activeTextEditor?.document;
+    const currentSnapshot = activeDocument
+      ? createDocumentSnapshot(
+          activeDocument.uri.toString(),
+          activeDocument.version,
+          activeDocument.getText(),
+        )
+      : undefined;
+
+    return isAnalysisResultCurrent(
+      scanId,
+      latestScanId,
+      analyzedSnapshot,
+      currentSnapshot,
+    );
   }
 
   context.subscriptions.push(
