@@ -15,6 +15,7 @@ import {
   SanctionLevel,
   Severity,
   computeRiskScore,
+  normalizeRiskScore,
 } from './types';
 
 /** /detect 응답 스키마 (docs/api-spec.md v1.0 — snake_case) */
@@ -43,7 +44,7 @@ export interface DetectFinding {
 }
 
 export interface DetectResponse {
-  risk_score?: number;                   // 파일 전체 점수 (생략 시 클라이언트 계산)
+  risk_score?: number | null;            // 파일 전체 점수 (생략/null 시 클라이언트 계산)
   findings: DetectFinding[];
   analyzed_at?: string;
 }
@@ -105,6 +106,7 @@ export function mapDetectResponse(
 ): AnalysisResult {
   const findings: Finding[] = (res.findings ?? []).map((d) => ({
     ruleId: d.rule_id,
+    cwe: d.cwe,
     message: d.message,
     detail: d.detail ?? d.cwe ?? '',
     severity: SEVERITY_MAP[d.severity] ?? 'warning',
@@ -123,13 +125,14 @@ export function mapDetectResponse(
         }
       : undefined,
     fix: d.fix,
+    riskScore: d.risk_score,
   }));
 
   return {
     fileName,
     languageId,
-    // 백엔드가 전체 점수를 주면 사용, 없으면 계약 공식(§1)으로 계산
-    riskScore: Math.min(100, Math.round(res.risk_score ?? computeRiskScore(findings))),
+    // 백엔드가 전체 점수를 주면 사용, 없으면 PDF 산식으로 계산
+    riskScore: normalizeRiskScore(res.risk_score ?? computeRiskScore(findings)),
     findings,
     engine: 'remote',
     analyzedAt: res.analyzed_at ?? new Date().toISOString(),

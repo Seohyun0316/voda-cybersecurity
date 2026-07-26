@@ -12,9 +12,24 @@ const http = require('http');
 
 const PORT = 8788;
 
-// CONTRACT.md §1 확정 공식용 가중치
-const SEVERITY_WEIGHT = { high: 25, medium: 12, low: 4 };
-const legalWeight = (legal) => (legal ? legal.liability + legal.sanction : 1);
+// docs/risk-scoring.md의 PDF 산식. 현재 mock이 반환하는 CWE-798에 필요한
+// 값과 새 mock 룰을 위한 희귀 CWE 기본값을 함께 둔다.
+const MAX_RAW_SCORE = 60;
+const FREQUENCY_SCORE = { 'CWE-798': 3 };
+const LEGAL_WEIGHT = { 'CWE-798': 5 };
+const TECHNICAL_WEIGHT = { high: 3, medium: 2, low: 1 };
+
+function findingRiskScore(finding) {
+  const cwe = finding.cwe ?? '';
+  const frequency = FREQUENCY_SCORE[cwe] ?? 0.5;
+  const technical = cwe === 'CWE-502' ? 4 : (TECHNICAL_WEIGHT[finding.severity] ?? 1);
+  const metadataLegal = finding.legal
+    ? finding.legal.liability + finding.legal.sanction
+    : 1.5;
+  const legal = LEGAL_WEIGHT[cwe] ?? metadataLegal;
+  const normalized = frequency * technical * legal / MAX_RAW_SCORE * 100;
+  return Math.round(normalized * 100) / 100;
+}
 
 /** 진짜 ML 대신 단순 패턴 매칭으로 스키마 형태만 흉내낸다 */
 function fakeDetect(code, fileName) {
@@ -64,15 +79,13 @@ function fakeDetect(code, fileName) {
     }
   });
 
-  // finding별 점수 + 전체 점수 (§1 공식)
-  let total = 0;
+  // finding별 점수와 현재 남아있는 finding 중 최댓값
   for (const f of findings) {
-    f.risk_score = Math.round(SEVERITY_WEIGHT[f.severity] * legalWeight(f.legal));
-    total += SEVERITY_WEIGHT[f.severity] * legalWeight(f.legal);
+    f.risk_score = findingRiskScore(f);
   }
 
   return {
-    risk_score: Math.min(100, Math.round(total)),
+    risk_score: Math.max(0, ...findings.map((finding) => finding.risk_score)),
     findings,
     analyzed_at: new Date().toISOString(),
   };

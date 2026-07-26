@@ -68,7 +68,8 @@ def test_detector_keeps_candidate_that_model_classifies_as_vulnerable():
         item for item in result["findings"] if item["rule_id"] == "A04-798-001"
     )
     assert "ml_probability" not in finding
-    assert result["risk_score"] is None
+    assert result["risk_score"] == 75
+    assert finding["risk_score"] == 75
 
 
 def test_detector_removes_candidate_that_model_classifies_as_safe():
@@ -91,4 +92,4 @@ def test_detector_removes_candidate_that_model_classifies_as_safe():
     )
 
     assert result["findings"] == []
-    assert result["risk_score"] is None
+    assert result["risk_score"] == 0

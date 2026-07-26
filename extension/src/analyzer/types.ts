@@ -57,6 +57,7 @@ export interface FixSuggestion {
 /** 탐지된 위험 1건 */
 export interface Finding {
   ruleId: string;         // 예: "hardcoded-password"
+  cwe?: string;           // 예: "CWE-798" 또는 "CWE-77, CWE-78"
   message: string;        // 예: "하드코딩 비밀번호 — 개인정보보호법 §29"
   detail: string;         // 예: "환경변수(.env) 또는 Secrets Manager 사용 권장"
   severity: Severity;
@@ -66,6 +67,7 @@ export interface Finding {
   endCol: number;
   legal?: LegalRisk;
   fix?: FixSuggestion;
+  riskScore?: number;     // 백엔드가 제공한 개별 finding 점수
 }
 
 /** 파일 1개에 대한 분석 결과 */
@@ -85,21 +87,85 @@ export interface Analyzer {
 }
 
 /**
- * 위험도 점수 (확정 공식 — CONTRACT.md §1)
+ * 위험도 점수 (위험도_측정식.pdf)
  *
- *   위험 점수 = Σ (빈도 × 기술 심각도 가중치 × 법적 가중치), 100점 만점
+ *   개별 점수 = 빈도 × 기술 심각도 × 법적 가중치 / 60 × 100
+ *   종합 점수 = 현재 남아있는 finding의 개별 점수 중 최댓값
  *
- * - 기술 심각도 가중치: error 25, warning 12, info 4
- * - 법적 가중치 = 법적 책임도(liability) + 제재 수준(sanction), legal 없으면 1.0
- *   (범위: 1+0.5=1.5 ~ 3+2=5)
- * - 빈도: 같은 위험이 n번 탐지되면 n번 합산 (reduce가 담당)
- * - 총합 반올림 후 상한 100
+ * - 빈도는 오탐을 제외한 진짜위험 비중의 CWE별 등급이다.
+ * - 기술 심각도: high/error=3, medium/warning=2, low/info=1,
+ *   단 CWE-502는 Critical=4다.
+ * - 알려진 CWE의 법적 가중치는 PDF 표를 사용한다.
+ * - PDF에 없는 CWE는 희귀 빈도 0.5와 finding의 법적 메타데이터를 사용한다.
  */
-const SEVERITY_WEIGHT: Record<Severity, number> = { error: 25, warning: 12, info: 4 };
+const MAX_RAW_SCORE = 3 * 4 * 5;
+const DEFAULT_FREQUENCY_SCORE = 0.5;
+const DEFAULT_LEGAL_WEIGHT = 1.5;
+
+const FREQUENCY_SCORE_BY_CWE: Record<string, number> = {
+  'CWE-798': 3,
+  'CWE-532': 3,
+  'CWE-295': 2,
+  'CWE-79': 2,
+  'CWE-89': 1,
+  'CWE-434': 1,
+  'CWE-256': 1,
+  'CWE-201': 1,
+  'CWE-502': 0.5,
+  'CWE-200': 0.5,
+  'CWE-359': 0.5,
+  'CWE-918': 0.5,
+  'CWE-209': 2,
+  'CWE-352': 0.5,
+  'CWE-862': 0.5,
+  'CWE-327': 0.5,
+  'CWE-22': 0.5,
+  'CWE-77': 0.5,
+  'CWE-78': 0.5,
+  'CWE-94': 0.5,
+  'CWE-20': 0.5,
+  'CWE-330': 1,
+  'CWE-770': 0.5,
+};
+
+const LEGAL_WEIGHT_BY_CWE: Record<string, number> = {
+  'CWE-798': 5,
+  'CWE-532': 4,
+  'CWE-295': 4,
+  'CWE-79': 4,
+  'CWE-89': 5,
+  'CWE-434': 4,
+  'CWE-256': 4,
+  'CWE-201': 3,
+  'CWE-502': 4,
+  'CWE-200': 5,
+  'CWE-359': 5,
+  'CWE-918': 5,
+  'CWE-209': 1.5,
+  'CWE-352': 4,
+  'CWE-862': 4,
+  'CWE-327': 4,
+  'CWE-22': 4,
+  'CWE-77': 4,
+  'CWE-78': 4,
+  'CWE-94': 4,
+  'CWE-20': 4,
+  'CWE-330': 1.5,
+  'CWE-770': 1.5,
+};
+
+const TECHNICAL_SEVERITY_WEIGHT: Record<Severity, number> = {
+  error: 3,
+  warning: 2,
+  info: 1,
+};
 
 export function legalWeight(legal?: LegalRisk): number {
-  if (!legal) return 1;
-  return (legal.liability ?? 1) + (legal.sanction ?? 0.5); // 백엔드가 누락 시 최소값으로 방어
+  if (!legal) return DEFAULT_LEGAL_WEIGHT;
+  return Math.min(5, Math.max(
+    DEFAULT_LEGAL_WEIGHT,
+    (legal.liability ?? 1) + (legal.sanction ?? 0.5),
+  ));
 }
 
 export interface LegalRiskGroup {
@@ -173,12 +239,39 @@ export function compactSanctionLabel(legal: LegalRisk): string {
   }
 }
 
+function cwes(value?: string): string[] {
+  return value?.match(/CWE-\d+/gi)?.map((cwe) => cwe.toUpperCase()) ?? [];
+}
+
+export function normalizeRiskScore(score: number): number {
+  if (!Number.isFinite(score)) return 0;
+  return Math.round(Math.min(100, Math.max(0, score)) * 100) / 100;
+}
+
+export function computeFindingRiskScore(finding: Finding): number {
+  const findingCwes = cwes(finding.cwe);
+  const candidates = findingCwes.length > 0 ? findingCwes : [''];
+  const fallbackLegalWeight = legalWeight(finding.legal);
+
+  const rawScore = Math.max(...candidates.map((cwe) => {
+    const frequency = FREQUENCY_SCORE_BY_CWE[cwe] ?? DEFAULT_FREQUENCY_SCORE;
+    const technical = cwe === 'CWE-502'
+      ? 4
+      : TECHNICAL_SEVERITY_WEIGHT[finding.severity];
+    const legal = LEGAL_WEIGHT_BY_CWE[cwe] ?? fallbackLegalWeight;
+    return frequency * technical * legal;
+  }));
+
+  return normalizeRiskScore(rawScore / MAX_RAW_SCORE * 100);
+}
+
 export function computeRiskScore(findings: Finding[]): number {
-  const score = findings.reduce(
-    (sum, f) => sum + SEVERITY_WEIGHT[f.severity] * legalWeight(f.legal),
+  return Math.max(
     0,
+    ...findings.map((finding) => normalizeRiskScore(
+      finding.riskScore ?? computeFindingRiskScore(finding),
+    )),
   );
-  return Math.min(100, Math.round(score));
 }
 
 export function riskLabel(score: number): string {

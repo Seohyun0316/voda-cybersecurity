@@ -9,10 +9,10 @@ import { RemoteAnalyzer } from './remoteAnalyzer';
 
 export function createAnalyzer(): Analyzer {
   const config = vscode.workspace.getConfiguration('vibesafe');
-  const engine = config.get<string>('engine', 'rules');
+  const engine = config.get<string>('engine', 'remote');
 
   if (engine === 'remote') {
-    const endpoint = config.get<string>('remoteEndpoint', 'http://localhost:8788/analyze');
+    const endpoint = config.get<string>('remoteEndpoint', 'http://localhost:5000/detect');
     return new RemoteAnalyzer(endpoint);
   }
   return new RuleEngineAnalyzer();

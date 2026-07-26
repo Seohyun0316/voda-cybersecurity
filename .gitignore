@@ -21,7 +21,8 @@ server/model/*.pkl
 server/model/*.joblib
 
 # IDE / OS
-.vscode/
+/.vscode/*
+!/.vscode/settings.json
 !extension/.vscode/
 !extension/.vscode/launch.json
 !extension/.vscode/settings.json

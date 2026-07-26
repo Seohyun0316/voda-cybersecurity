@@ -34,7 +34,7 @@ def test_health_reports_rule_and_model_readiness(client):
     assert body["ml"]["available"] is True
     assert body["ml"]["feature_count"] == 10
     assert body["ml"]["known_rule_count"] == 29
-    assert body["ml"]["risk_score_policy"] == "pending_team_decision"
+    assert body["ml"]["risk_score_policy"] == "pdf_v1_max_finding"
 
 
 def test_detect_returns_candidate_accepted_by_ml_filter(client):
@@ -47,11 +47,12 @@ def test_detect_returns_candidate_accepted_by_ml_filter(client):
     assert response.status_code == 200
     body = response.get_json()
     finding = next(item for item in body["findings"] if item["rule_id"] == "A04-798-001")
-    assert body["risk_score"] is None
+    assert body["risk_score"] == 75
     assert "ml_probability" not in finding
     assert finding["cwe"] == "CWE-798"
     assert finding["category"] == "secret"
     assert finding["severity"] == "high"
+    assert finding["risk_score"] == 75
     assert finding["line"] == 0
     assert finding["start_col"] == 0
     assert finding["end_col"] == len(code)
@@ -62,7 +63,7 @@ def test_detect_returns_candidate_accepted_by_ml_filter(client):
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T.*Z", body["analyzed_at"])
 
 
-def test_detect_returns_pending_risk_when_no_rule_candidate_exists(client):
+def test_detect_returns_zero_risk_when_no_rule_candidate_exists(client):
     response = client.post(
         "/detect",
         json={
@@ -74,7 +75,7 @@ def test_detect_returns_pending_risk_when_no_rule_candidate_exists(client):
 
     assert response.status_code == 200
     assert response.get_json()["findings"] == []
-    assert response.get_json()["risk_score"] is None
+    assert response.get_json()["risk_score"] == 0
 
 
 def test_detect_uses_zero_based_line_and_column(client):

@@ -12,38 +12,30 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 | severity | `error` \| `warning` \| `info` 세 가지만. 추가 금지 |
 | category | `secret` \| `injection` \| `crypto` \| `cost` \| `other` 다섯 가지만 |
 | ruleId | kebab-case 영문 (예: `hardcoded-password`). 룰 추가 시 F2가 명명 |
+| cwe | `CWE-NNN`. 여러 값이면 쉼표로 구분 |
 | message | 한국어, 한 줄, "무엇이 위험한지" (예: `하드코딩 비밀번호 — 개인정보보호법 §29`) |
 | detail | 한국어, 한 줄, "어떻게 고치는지" (예: `환경변수(.env) 사용 권장`) |
 | legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction, sanctionType? }` — liability/sanction은 아래 표의 값 필수 |
 | fix.replacement | 해당 범위(line, startCol~endCol)를 **통째로 대체**할 문자열 |
 | analyzedAt | ISO 8601 문자열 |
 
-**위험도 점수 (computeRiskScore — 변경 금지)**
+**위험도 점수 (`docs/risk-scoring.md` 기준)**
 
-확정 공식: **위험 점수 = Σ (빈도 × 기술 심각도 가중치 × 법적 가중치)**, 100점 만점
+확정 공식:
 
-- 기술 심각도 가중치: error 25, warning 12, info 4
-- **법적 가중치 = 법적 책임도 + 제재 수준** (`legal` 없으면 ×1.0)
+```text
+개별 점수 = 빈도 점수 × 기술 심각도 × 법적 가중치 / 60 × 100
+종합 점수 = 현재 남아있는 findings의 개별 점수 중 최댓값
+```
 
-| 법적 책임도 (`legal.liability`) | 값 |
-|---|---|
-| 형사처벌 규정 | 3 |
-| 과징금·과태료 부과 가능한 의무조항 | 2 |
-| 일반 관리·안전조치 의무 | 1 |
-
-| 제재 수준 (`legal.sanction`) | 값 |
-|---|---|
-| 형사처벌 또는 1억 이상 과징금 사례 | 2 |
-| 과징금·과태료 사례 | 1 |
-| 시정명령·권고 또는 사례 없음 | 0.5 |
-
-- 법적 가중치 범위: 최소 1.5 (1+0.5) ~ 최대 5 (3+2)
-- 빈도: 같은 위험이 n번 탐지되면 n번 합산, 총합 반올림 후 상한 100
+- 기술 심각도: error 3, warning 2, info 1. 단 CWE-502는 Critical 4
+- 빈도와 법적 가중치는 [`docs/risk-scoring.md`](../docs/risk-scoring.md)의 CWE별 표 사용
+- 같은 위험이 반복 탐지되어도 합산하지 않음
+- finding이 없으면 0, 소수 둘째 자리까지 유지
 - 라벨: 70 이상 `높음`, 40~69 `중간`, 1~39 `낮음`, 0 `안전`
-- 예시: 하드코딩 비밀번호(error 25) × §29 가중치(책임도 2 + 제재 1 = 3) = **75점**
-- 예시(sample/auth.py): 75 + API 키 25 + SQL injection 12 + md5 12 = 124 → **상한 적용 100점 높음**
-- 룰에 `legal`을 붙일 때는 F2가 위 표에서 liability/sanction 값을 정해 기입한다 (법령·사례 근거 주석 권장)
-- ML 백엔드가 `risk_score`를 숫자로 보낼 때도 **반드시 이 공식**을 따른다 (`null`이면 클라이언트가 계산)
+- 예시: CWE-798(75)과 CWE-532(60)이 함께 있으면 종합 점수는 75
+- CWE-798을 수정하면 종합 점수는 60, 모두 수정하면 0
+- 구버전 백엔드가 `risk_score`를 생략하거나 `null`로 보내면 클라이언트가 같은 공식으로 계산
 
 ## 2. API 계약 (MVP v1)
 
@@ -62,7 +54,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 | legal | `liability`, `sanction`은 MVP에서 `null` 허용. 표시용 제재 유형은 API의 `sanction_type`을 사용 |
 | fix | 지정 범위에 바로 적용 가능한 실행 코드일 때만 허용 |
 | ML | 룰 후보의 2차 필터이며 확률은 응답에 노출하지 않음 |
-| risk_score | 서버 정책 미정이면 `null`; 클라이언트가 §1 공식으로 계산 |
+| risk_score | 서버는 현재 findings의 최대 점수를 반환; 누락/null이면 클라이언트가 §1 공식으로 계산 |
 | 오류 | non-2xx를 원격 분석 실패로 처리 |
 | 타임아웃 | 클라이언트 10초 |
 | 인증 | MVP 없음 |
@@ -83,7 +75,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 
 - 명령 ID: `vibesafe.<동사구>` (예: `vibesafe.analyzeFile`, `vibesafe.showPanel`)
 - 뷰 ID: `vibesafe.riskPanel`, 뷰 컨테이너 ID: `vibesafe`
-- 설정 키: `vibesafe.<camelCase>` — 현재 `engine`(기본 `rules`), `remoteEndpoint`(기본 `http://localhost:5000/detect`)
+- 설정 키: `vibesafe.<camelCase>` — 현재 `engine`(기본 `remote`), `remoteEndpoint`(기본 `http://localhost:5000/detect`)
 - 진단 source: `VibeSafe`, DiagnosticCollection 이름: `vibesafe`
 
 ## 5. 동작 스펙
@@ -92,7 +84,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 - 분석 트리거: **수동 검사만** (팀 확정) — 에디터 타이틀 방패 버튼, 사이드 패널 "▶ 현재 파일 검사" 버튼, 상태바 클릭, 명령 팔레트. 자동 검사 없음
 - 검사 대상: 현재 열린 파일 하나. 서버는 로컬호스트에서 별도 실행 (extension이 켜고 끄지 않음, 서버 다운 시 로컬 룰 폴백)
 - 미지원 파일: 검사 시 안내 메시지 표시
-- 원격 엔진 실패: 경고 메시지 1회 → `engine` 설정을 `rules`로 되돌리고 재분석
+- 원격 엔진 실패: 경고 메시지 1회 → 해당 검사만 로컬 룰로 재분석하며 설정은 `remote`로 유지
 
 ## 6. Git 규칙
 

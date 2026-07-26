@@ -8,6 +8,7 @@ from typing import Any
 
 from vibesafe.ml.features import extract_features
 from vibesafe.ml.predictor import Predictor
+from vibesafe.risk_scoring import finding_risk_score, risk_score
 from vibesafe.rule_engine import RuleEngine
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -39,7 +40,7 @@ class Detector:
             "reason": self.predictor.unavailable_reason,
             "feature_count": len(self.predictor.feature_columns),
             "known_rule_count": self.predictor.known_rule_count,
-            "risk_score_policy": "pending_team_decision",
+            "risk_score_policy": "pdf_v1_max_finding",
         }
 
     def score_candidates(
@@ -70,9 +71,12 @@ class Detector:
                 >= ML_CANDIDATE_THRESHOLD
             ]
 
+        for finding in findings:
+            finding["risk_score"] = finding_risk_score(finding)
+
         analyzed_at = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
         return {
-            "risk_score": None,
+            "risk_score": risk_score(findings),
             "findings": findings,
             "analyzed_at": analyzed_at.replace("+00:00", "Z"),
         }

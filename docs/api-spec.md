@@ -49,7 +49,7 @@ ML 확률은 내부 필터링 값이며 MVP 응답에는 노출하지 않는다.
     "reason": null,
     "feature_count": 10,
     "known_rule_count": 29,
-    "risk_score_policy": "pending_team_decision"
+    "risk_score_policy": "pdf_v1_max_finding"
   }
 }
 ```
@@ -89,7 +89,7 @@ Content-Type: application/json
 
 ```json
 {
-  "risk_score": null,
+  "risk_score": 75,
   "findings": [
     {
       "rule_id": "A04-798-001",
@@ -101,6 +101,7 @@ Content-Type: application/json
       "end_col": 31,
       "message": "하드코딩된 비밀값 패턴이 감지되었습니다.",
       "detail": "환경변수(.env) 또는 Secrets Manager 사용 권장",
+      "risk_score": 75,
       "legal": {
         "law": "개인정보보호법",
         "article": "§29",
@@ -119,7 +120,7 @@ Content-Type: application/json
 
 | 필드 | 타입 | 필수 | 규칙 |
 | --- | --- | --- | --- |
-| `risk_score` | number \| null | 예 | `0`~`100`. 서버 정책이 미정이면 `null`이며 Extension이 계약 공식을 사용해 계산한다. |
+| `risk_score` | number | 예 | `0`~`100`. 현재 남아있는 findings의 개별 점수 중 최댓값이며, 결과가 없으면 `0`이다. |
 | `findings` | Finding[] | 예 | 탐지 결과. 결과가 없으면 빈 배열이다. |
 | `analyzed_at` | string | 예 | UTC ISO 8601 시각이다. |
 
@@ -136,6 +137,7 @@ Content-Type: application/json
 | `end_col` | integer | 예 | 동일 줄의 exclusive 끝 열이다. |
 | `message` | string | 예 | 사용자에게 보여줄 탐지 요약이다. |
 | `detail` | string | 예 | 룰 또는 대응 방법에 대한 상세 설명이다. |
+| `risk_score` | number | 예 | 이 finding의 PDF 산식 기준 `0`~`100` 점수이다. |
 | `legal` | Legal \| null | 아니요 | 법적 정보가 없으면 생략하거나 `null`로 보낸다. |
 | `fix` | Fix \| null | 아니요 | 안전한 자동 치환이 가능한 경우에만 제공한다. |
 
@@ -200,23 +202,20 @@ Extension의 점수 계산에서 `liability: null`은 `1`, `sanction: null`은 `
 
 ## 8. 위험 점수
 
-서버가 `risk_score`를 숫자로 제공하면 Extension은 해당 값을 사용한다.
-`null`이면 ML 필터를 통과한 findings로 다음 공식을 적용한다.
+서버는 ML 필터를 통과한 각 finding을 독립적으로 계산한다. Extension은 서버
+점수를 사용하며, 구버전 서버가 점수를 생략하거나 `null`을 보내면 같은 공식을
+클라이언트에서 적용한다.
 
 ```text
-score = Σ(기술 심각도 × 법적 가중치)
-최종 점수 = min(100, round(score))
+개별 raw = 빈도 점수 × 기술 심각도 × 법적 가중치
+개별 점수 = raw / 60 × 100
+종합 점수 = max(현재 남아있는 findings의 개별 점수)
 ```
 
-기술 심각도:
+finding이 없으면 종합 점수는 `0`이다. 점수는 소수 둘째 자리까지 유지한다.
 
-| severity | 가중치 |
-| --- | ---: |
-| `high` | 25 |
-| `medium` | 12 |
-| `low` | 4 |
-
-법적 가중치는 `liability + sanction`이다. `legal`이 없으면 `1.0`을 사용한다.
+빈도 등급, CWE별 법적 가중치, Critical 예외와 전체 환산표는
+[`risk-scoring.md`](risk-scoring.md)를 따른다.
 
 ## 9. 오류 응답
 

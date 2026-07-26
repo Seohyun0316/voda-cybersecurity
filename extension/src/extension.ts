@@ -8,6 +8,7 @@
  */
 import * as vscode from 'vscode';
 import { createAnalyzer, Analyzer } from './analyzer';
+import { RuleEngineAnalyzer } from './analyzer/ruleEngine';
 import { DiagnosticsManager } from './diagnostics';
 import { RiskPanelProvider } from './riskPanel';
 import { StatusBarManager } from './statusBar';
@@ -39,7 +40,10 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   /** 검사 1회 실행 — 유일한 분석 진입점 (버튼/명령에서만 호출됨) */
-  async function runScan(retrying = false): Promise<void> {
+  async function runScan(
+    retrying = false,
+    activeAnalyzer: Analyzer = analyzer,
+  ): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       vscode.window.showInformationMessage('VibeSafe: 검사할 파일을 먼저 열어주세요.');
@@ -53,7 +57,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
     statusBar.setScanning();
     try {
-      const result = await analyzer.analyze(doc.getText(), doc.fileName, doc.languageId);
+      const result = await activeAnalyzer.analyze(
+        doc.getText(),
+        doc.fileName,
+        doc.languageId,
+      );
       diagnostics.update(doc.uri, result);
       codeActions.setResult(doc.uri, result);
       statusBar.update(result);
@@ -63,14 +71,19 @@ export function activate(context: vscode.ExtensionContext): void {
         statusBar.setIdle();
         return;
       }
-      // 원격(서버) 엔진 실패 시: 알리고 로컬 규칙으로 폴백해 1회 재시도
+      if (activeAnalyzer.kind !== 'remote') {
+        statusBar.setIdle();
+        vscode.window.showErrorMessage(
+          `VibeSafe: 로컬 분석 실패 (${err instanceof Error ? err.message : err}).`,
+        );
+        return;
+      }
+      // 원격 엔진 실패 시 이번 검사만 로컬 규칙으로 재시도한다.
+      // 사용자 설정은 변경하지 않아 다음 검사에서 백엔드 연결을 다시 시도한다.
       vscode.window.showWarningMessage(
-        `VibeSafe: 백엔드 분석 실패 (${err instanceof Error ? err.message : err}). 로컬 규칙 엔진으로 전환합니다.`,
+        `VibeSafe: 백엔드 분석 실패 (${err instanceof Error ? err.message : err}). 이번 검사만 로컬 규칙 엔진을 사용합니다.`,
       );
-      const config = vscode.workspace.getConfiguration('vibesafe');
-      await config.update('engine', 'rules', vscode.ConfigurationTarget.Global);
-      analyzer = createAnalyzer();
-      await runScan(true);
+      await runScan(true, new RuleEngineAnalyzer());
     }
   }
 

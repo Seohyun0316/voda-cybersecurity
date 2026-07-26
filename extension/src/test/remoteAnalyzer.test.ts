@@ -50,6 +50,7 @@ test('/detect v1.0 응답을 내부 모델로 변환', () => {
   assert.strictEqual(f.legal?.liability, 2, '구조화된 legal 그대로 전달');
   assert.strictEqual(f.legal?.sanctionType, '과징금·과태료', '표시용 제재 유형 변환');
   assert.strictEqual(f.fix?.replacement, 'API_KEY = os.environ["API_KEY"]');
+  assert.strictEqual(f.riskScore, 75, '개별 finding 점수 전달');
   assert.strictEqual(result.riskScore, 75, '백엔드 전체 점수 사용');
   assert.strictEqual(result.engine, 'remote');
 });
@@ -129,12 +130,12 @@ test('백엔드 상세 category를 Extension UI category로 변환', () => {
   assert.strictEqual(result.findings[1].category, 'cost');
 });
 
-test('risk_score 없으면 계약 공식(§1)으로 계산', () => {
+test('risk_score 없으면 PDF 산식으로 계산', () => {
   const result = mapDetectResponse(
     {
       findings: [
         {
-          rule_id: 'A04-798-001', severity: 'high', line: 0, start_col: 0, end_col: 5, message: 'm',
+          rule_id: 'A04-798-001', cwe: 'CWE-798', severity: 'high', line: 0, start_col: 0, end_col: 5, message: 'm',
           legal: { law: '개인정보보호법', article: '§29', description: '', liability: 2, sanction: 1 },
         },
       ],
@@ -143,7 +144,7 @@ test('risk_score 없으면 계약 공식(§1)으로 계산', () => {
     'a.py',
     'python',
   );
-  assert.strictEqual(result.riskScore, 75, 'error 25 × (2+1) = 75');
+  assert.strictEqual(result.riskScore, 75, '3 × 3 × 5 / 60 × 100 = 75');
 });
 
 test('빈 응답은 안전(0점)', () => {

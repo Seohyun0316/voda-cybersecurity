@@ -53,8 +53,8 @@
             "rules",
             "remote"
           ],
-          "default": "rules",
-          "description": "분석 엔진 선택. rules = 로컬 규칙 기반, remote = ML 백엔드 API (백엔드 연결 후 사용)"
+          "default": "remote",
+          "description": "분석 엔진 선택. remote = ML 백엔드 API, rules = 로컬 규칙 기반 fallback"
         },
         "vibesafe.remoteEndpoint": {
           "type": "string",

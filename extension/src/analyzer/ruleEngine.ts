@@ -16,6 +16,7 @@ import {
 
 interface Rule {
   id: string;
+  cwe: string;
   /** 한 줄 단위로 검사할 정규식 (g 플래그 필수 — 한 줄에 여러 건 탐지) */
   pattern: RegExp;
   severity: Severity;
@@ -93,6 +94,7 @@ function envVarFix(varName: string, languageId: string): { title: string; replac
 const RULES: Rule[] = [
   {
     id: 'hardcoded-password',
+    cwe: 'CWE-798',
     pattern: /(password|passwd|pwd|secret|db_password)\s*=\s*["'][^"']{4,}["']/gi,
     severity: 'error',
     category: 'secret',
@@ -107,6 +109,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'exposed-api-key',
+    cwe: 'CWE-798',
     pattern: /(["']?)(sk-[a-zA-Z0-9_-]{8,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{20,})\1/g,
     severity: 'error',
     category: 'cost',
@@ -119,6 +122,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'sql-injection',
+    cwe: 'CWE-89',
     pattern: /["'].*?\b(SELECT|INSERT|UPDATE|DELETE)\b.*?["']\s*\+/gi,
     severity: 'warning',
     category: 'injection',
@@ -131,6 +135,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'weak-hash',
+    cwe: 'CWE-327',
     pattern: /\b(md5|sha1)\s*\(/gi,
     severity: 'warning',
     category: 'crypto',
@@ -143,6 +148,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'dangerous-eval',
+    cwe: 'CWE-94',
     pattern: /\beval\s*\(/g,
     severity: 'warning',
     category: 'injection',
@@ -155,6 +161,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'debug-mode',
+    cwe: 'CWE-209',
     pattern: /\bdebug\s*=\s*True\b/g,
     severity: 'info',
     category: 'other',
@@ -167,6 +174,7 @@ const RULES: Rule[] = [
   },
   {
   id: 'dangerous-file-upload',
+  cwe: 'CWE-434',
   pattern: /\b(move_uploaded_file|MultipartFile|IFormFile|multer|upload)\b/g,
   severity: 'warning',
   category: 'other',
@@ -176,6 +184,7 @@ const RULES: Rule[] = [
   },
   {
   id: 'hardcoded-credential',
+  cwe: 'CWE-798',
   pattern: /\b(api[_-]?key|token|access[_-]?key|secret[_-]?key)\s*=\s*["'][^"']+["']/gi,
   severity: 'error',
   category: 'secret',
@@ -185,6 +194,7 @@ const RULES: Rule[] = [
   },
   {
   id: 'path-traversal',
+  cwe: 'CWE-22',
   pattern: /\.\.\//g,
   severity: 'warning',
   category: 'injection',
@@ -201,6 +211,7 @@ const RULES: Rule[] = [
   },
   {
   id: 'os-command-injection',
+  cwe: 'CWE-77, CWE-78',
   pattern: /\b(exec|system|Runtime\.getRuntime\(\)|subprocess\.Popen|os\.system)\b/g,
   severity: 'error',
   category: 'injection',
@@ -210,6 +221,7 @@ const RULES: Rule[] = [
   },
   {
   id: 'unsafe-deserialization',
+  cwe: 'CWE-502',
   pattern: /\b(pickle\.loads|ObjectInputStream|BinaryFormatter|deserialize)\b/g,
   severity: 'error',
   category: 'other',
@@ -219,6 +231,7 @@ const RULES: Rule[] = [
   },
   {
   id: 'ssrf',
+  cwe: 'CWE-918',
   pattern: /\b(requests\.get|axios\.get|fetch|http\.get|urllib\.request)\b/g,
   severity: 'warning',
   category: 'injection',
@@ -228,6 +241,7 @@ const RULES: Rule[] = [
   },
   {
   id: 'personal-info',
+  cwe: 'CWE-200, CWE-359',
   pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
   severity: 'warning',
   category: 'secret',
@@ -251,6 +265,7 @@ export class RuleEngineAnalyzer implements Analyzer {
         while ((m = rule.pattern.exec(lineText)) !== null) {
           findings.push({
             ruleId: rule.id,
+            cwe: rule.cwe,
             message: rule.message,
             detail: rule.detail,
             severity: rule.severity,

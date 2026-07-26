@@ -9,10 +9,10 @@ VibeSafe 서버는 Python 소스 코드에서 보안 취약 가능성을 탐지�
 - 보강된 10피처 XGBoost 모델과 룰별 취약 확률 계산 지원
 - 활성 룰 29개와 ML 학습 룰 29개 일치
 - `GET /health`, `POST /detect` 제공
-- 자동 테스트 13개 통과
+- 자동 테스트 42개 통과
 - 모델 확률은 서버 내부에서 정규식 후보를 2차 필터링하는 데만 사용
 - 모델이 취약 확률 0.5 이상으로 판정한 후보만 `findings`로 반환
-- 위험도 정책 미정으로 `risk_score`는 현재 `null`
+- PDF 기준 CWE별 위험도 점수와 현재 findings 중 최대 `risk_score` 반환
 
 ## 구조
 
@@ -30,6 +30,7 @@ server/
 `-- vibesafe/
     |-- api.py                     # Flask API
     |-- detector.py                # 탐지 흐름
+    |-- risk_scoring.py            # PDF 기준 위험도 산식
     |-- rule_engine.py             # TOML 룰 엔진
     `-- ml/                        # 10피처와 예측기
 ```
@@ -68,7 +69,7 @@ Content-Type: application/json
 }
 ```
 
-모델은 룰 후보별 취약 확률을 서버 내부에서 계산하고, 확률이 0.5 이상인 후보만 최종 `findings`에 포함합니다. 응답의 `findings` 구조는 변경하지 않으며, ML 결과는 `risk_score`에 반영하지 않습니다. 최종 위험도 정책이 아직 정해지지 않아 `risk_score`는 `null`을 반환합니다.
+모델은 룰 후보별 취약 확률을 서버 내부에서 계산하고, 확률이 0.5 이상인 후보만 최종 `findings`에 포함합니다. ML 확률 자체는 위험 점수에 사용하지 않습니다. 필터를 통과한 각 finding은 `빈도 × 기술 심각도 × 법적 가중치 / 60 × 100`으로 계산하며, 응답의 최상위 `risk_score`는 현재 findings 중 가장 높은 점수입니다. finding이 없으면 `0`입니다.
 
 ## 테스트
 
@@ -77,7 +78,7 @@ python -m pip install -r requirements-dev.txt
 python -B -m pytest -p no:cacheprovider -q
 ```
 
-정상 결과는 `15 passed`입니다. ML만 확인하려면 다음을 실행합니다.
+정상 결과는 `42 passed`입니다. ML만 확인하려면 다음을 실행합니다.
 
 ```powershell
 python scripts/predict_model.py A04-798-001 --code 'password = "secret-value"'

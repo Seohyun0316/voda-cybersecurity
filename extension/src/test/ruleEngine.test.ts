@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import * as assert from 'node:assert';
 import { RuleEngineAnalyzer } from '../analyzer/ruleEngine';
 import {
+  computeFindingRiskScore,
   computeRiskScore,
   compactLegalDescription,
   compactSanctionLabel,
@@ -114,49 +115,43 @@ test('위험도 점수 계산과 라벨', () => {
   assert.strictEqual(riskLabel(50), '중간');
   assert.strictEqual(riskLabel(72), '높음');
   const score = computeRiskScore([
-    { severity: 'error' } as never,
-    { severity: 'error' } as never,
-    { severity: 'warning' } as never,
+    { cwe: 'CWE-532', severity: 'error' } as never,
+    { cwe: 'CWE-295', severity: 'error' } as never,
+    { cwe: 'CWE-209', severity: 'warning' } as never,
   ]);
-  assert.strictEqual(score, 62, '법적 가중 없으면 25+25+12');
+  assert.strictEqual(score, 60, '여러 finding 중 가장 높은 CWE-532 점수');
 });
 
-test('법적 가중치 = 책임도 + 제재 수준', () => {
-  // §29: 과징금·과태료 의무조항(2) + 과징금·과태료 사례(1) = 가중치 3
-  const pipa29 = { law: '개인정보보호법', article: '§29', description: '', liability: 2, sanction: 1 };
+test('PDF 위험도 산식과 최대 finding 집계', () => {
   assert.strictEqual(
-    computeRiskScore([{ severity: 'error', legal: pipa29 } as never]),
+    computeFindingRiskScore({ cwe: 'CWE-798', severity: 'error' } as never),
     75,
-    'error 25 × (2+1) = 75',
+    '3 × 3 × 5 / 60 × 100 = 75',
   );
-
-  // 형사처벌 규정(3) + 형사처벌 사례(2) = 가중치 5 → 25×5=125 → 상한 100
-  const criminal = { law: '정보통신망법', article: '§48', description: '', liability: 3, sanction: 2 };
   assert.strictEqual(
-    computeRiskScore([{ severity: 'error', legal: criminal } as never]),
-    100,
-    '상한 100 적용',
+    computeFindingRiskScore({ cwe: 'CWE-532', severity: 'error' } as never),
+    60,
+    '3 × 3 × 4 / 60 × 100 = 60',
   );
-
-  // 최소 가중치: 일반 의무(1) + 사례 없음(0.5) = 1.5 → warning 12×1.5=18
-  const mild = { law: '개인정보보호법', article: '§28', description: '', liability: 1, sanction: 0.5 };
   assert.strictEqual(
-    computeRiskScore([{ severity: 'warning', legal: mild } as never]),
-    18,
-    'warning 12 × 1.5 = 18',
+    computeFindingRiskScore({ cwe: 'CWE-502', severity: 'info' } as never),
+    13.33,
+    'CWE-502는 severity와 무관하게 Critical(4)',
   );
-
-  // sample/auth.py 시나리오: 75 + 25 + 12 + 12 = 124 → 100
   assert.strictEqual(
     computeRiskScore([
-      { severity: 'error', legal: pipa29 } as never, // 75
-      { severity: 'error' } as never,                // 25
-      { severity: 'warning' } as never,              // 12
-      { severity: 'warning' } as never,              // 12
+      { cwe: 'CWE-798', severity: 'error' } as never,
+      { cwe: 'CWE-532', severity: 'error' } as never,
     ]),
-    100,
-    'auth.py: 124 → 상한 100',
+    75,
+    '합계가 아니라 현재 finding 중 최댓값',
   );
+  assert.strictEqual(
+    computeRiskScore([{ cwe: 'CWE-532', severity: 'error' } as never]),
+    60,
+    '최고 위험을 수정하면 다음 finding 점수로 하락',
+  );
+  assert.strictEqual(computeRiskScore([]), 0);
 });
 
 test('여러 줄 파일에서 줄 번호 정확성', async () => {
