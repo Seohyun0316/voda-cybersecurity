@@ -14,7 +14,7 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 | ruleId | kebab-case 영문 (예: `hardcoded-password`). 룰 추가 시 F2가 명명 |
 | message | 한국어, 한 줄, "무엇이 위험한지" (예: `하드코딩 비밀번호 — 개인정보보호법 §29`) |
 | detail | 한국어, 한 줄, "어떻게 고치는지" (예: `환경변수(.env) 사용 권장`) |
-| legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction }` — liability/sanction은 아래 표의 값 필수 |
+| legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction, sanctionType? }` — liability/sanction은 아래 표의 값 필수 |
 | fix.replacement | 해당 범위(line, startCol~endCol)를 **통째로 대체**할 문자열 |
 | analyzedAt | ISO 8601 문자열 |
 
@@ -43,31 +43,32 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 - 예시: 하드코딩 비밀번호(error 25) × §29 가중치(책임도 2 + 제재 1 = 3) = **75점**
 - 예시(sample/auth.py): 75 + API 키 25 + SQL injection 12 + md5 12 = 124 → **상한 적용 100점 높음**
 - 룰에 `legal`을 붙일 때는 F2가 위 표에서 liability/sanction 값을 정해 기입한다 (법령·사례 근거 주석 권장)
-- ML 백엔드가 `riskScore`를 직접 보낼 때도 **반드시 이 공식**을 따른다 (생략 시 클라이언트가 계산)
+- ML 백엔드가 `risk_score`를 숫자로 보낼 때도 **반드시 이 공식**을 따른다 (`null`이면 클라이언트가 계산)
 
-## 2. API 계약 (ML 백엔드 /detect — F 파트 확정 v1.0)
+## 2. API 계약 (MVP v1)
 
-백엔드가 아직 스키마를 정의하지 않았으므로 **F 파트가 확정해서 전달한다.**
-전체 스펙 문서는 `api-spec.md` (저장소 `docs/api-spec.md` 교체용),
-살아있는 레퍼런스는 `mock-server/server.js`.
+API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spec.md)다.
+이 문서에는 프론트 내부 모델과의 경계만 요약한다.
 
 | 항목 | 확정값 |
 |---|---|
 | 엔드포인트 | `POST /detect`, `Content-Type: application/json` |
-| 요청 | `{ code, language, file_name? }` |
-| 응답 | `{ risk_score, findings[], analyzed_at? }` |
-| finding | `{ rule_id, cwe?, category, severity(high\|medium\|low), line, start_col, end_col, message, detail?, risk_score?, legal?, fix? }` |
-| 좌표 | `line`, `start_col`, `end_col` 모두 **0-based** (VS Code 기준 — 변환 없음) |
-| severity 매핑 | high → error, medium → warning, low → info (어댑터 고정) |
-| legal | `{ law, article, description, liability(1~3), sanction(0.5~2) }` — §1 표 값 사용, legal-mapping.md 기준 |
-| risk_score | §1 공식으로 백엔드가 계산. 생략 시 클라이언트가 동일 공식으로 계산 |
-| 오류 | 4xx/5xx + `{ "error": "메시지" }` |
-| 타임아웃 | 클라이언트 10초. 초과·실패 시 로컬 규칙 엔진으로 자동 폴백 |
-| 인증 | v1 없음. 연결 시 `Authorization: Bearer <token>` (remoteAnalyzer.ts TODO 위치) |
-| 기본 URL | `http://localhost:5000/detect` (Flask). mock 테스트는 `http://localhost:8788/detect` |
+| MVP 언어 | `python`만 지원 |
+| 요청 | `{ code, language, file_name }` — 세 필드 모두 필수 |
+| 응답 | `{ risk_score: number \| null, findings: Finding[], analyzed_at: string }` |
+| 좌표 | `line`, `start_col`, `end_col` 모두 0-based, `end_col`은 exclusive |
+| severity 매핑 | high → error, medium → warning, low → info |
+| category | 백엔드 상세 카테고리를 `api-spec.md` 표에 따라 다섯 UI 카테고리로 변환 |
+| legal | `liability`, `sanction`은 MVP에서 `null` 허용. 표시용 제재 유형은 API의 `sanction_type`을 사용 |
+| fix | 지정 범위에 바로 적용 가능한 실행 코드일 때만 허용 |
+| ML | 룰 후보의 2차 필터이며 확률은 응답에 노출하지 않음 |
+| risk_score | 서버 정책 미정이면 `null`; 클라이언트가 §1 공식으로 계산 |
+| 오류 | non-2xx를 원격 분석 실패로 처리 |
+| 타임아웃 | 클라이언트 10초 |
+| 인증 | MVP 없음 |
+| 기본 URL | `http://localhost:5000/detect` |
 
-백엔드(M 파트)에 전달할 것: `api-spec.md` + `mock-server/server.js` 두 개.
-"구현 후 mock 서버와 응답을 비교해서 같은 형태면 연결 완료"라고 안내하면 된다.
+백엔드 응답과 Extension 어댑터의 통합 테스트도 이 계약을 기준으로 작성한다.
 
 ## 3. 코드 소유권 (충돌 방지)
 

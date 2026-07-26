@@ -40,6 +40,7 @@ function fakeDetect(code, fileName) {
           description: '안전조치 의무 위반 소지',
           liability: 2, // 과징금·과태료 부과 가능한 의무조항
           sanction: 1,  // 과징금·과태료 사례
+          sanction_type: '과징금·과태료',
         },
         fix: {
           title: '환경변수로 교체',

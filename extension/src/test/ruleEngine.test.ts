@@ -5,7 +5,13 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert';
 import { RuleEngineAnalyzer } from '../analyzer/ruleEngine';
-import { computeRiskScore, riskLabel } from '../analyzer/types';
+import {
+  computeRiskScore,
+  compactLegalDescription,
+  compactSanctionLabel,
+  groupLegalRisks,
+  riskLabel,
+} from '../analyzer/types';
 
 const engine = new RuleEngineAnalyzer();
 
@@ -99,4 +105,40 @@ test('여러 줄 파일에서 줄 번호 정확성', async () => {
   const result = await engine.analyze(code, 'auth.py', 'python');
   const f = result.findings.find((x) => x.ruleId === 'hardcoded-password');
   assert.strictEqual(f!.line, 3, '0-based로 3번째 줄');
+});
+
+test('법적 리스크는 법률·조항별로 묶고 같은 설명·제재의 반복 탐지는 제거', () => {
+  const mild = {
+    law: '개인정보보호법',
+    article: '§29',
+    description: '일반 안전조치 의무 위반 소지가 있습니다.',
+    liability: 2,
+    sanction: 1,
+    sanctionType: '과징금·과태료',
+  } as const;
+  const severe = {
+    law: '개인정보보호법',
+    article: '§29',
+    description: '하드코딩된 인증정보로 안전조치 의무 위반 소지가 있습니다.',
+    liability: 3,
+    sanction: 2,
+    sanctionType: '형사처벌, 과징금·과태료',
+  } as const;
+
+  const groups = groupLegalRisks([
+    { ruleId: 'mild-rule', legal: mild } as never,
+    { ruleId: 'another-mild-rule', legal: mild } as never,
+    { ruleId: 'severe-rule', legal: severe } as never,
+  ]);
+
+  assert.strictEqual(groups.length, 1);
+  assert.strictEqual(groups[0].items.length, 2, '서로 다른 위험 설명은 모두 유지');
+  assert.strictEqual(
+    compactLegalDescription(severe.description),
+    '하드코딩된 인증정보',
+  );
+  assert.strictEqual(
+    compactSanctionLabel(severe),
+    '형사처벌/과징금·과태료',
+  );
 });
