@@ -203,3 +203,19 @@ def test_every_active_rule_uses_a_documented_legal_mapping():
     for rule in engine.rules:
         assert rule.cwes
         assert rule.cwes[0] in LEGAL_BY_CWE
+
+
+def test_critical_deserialization_rule_is_normalized_to_high():
+    engine = RuleEngine("config/ruleset.toml")
+    rule = next(rule for rule in engine.rules if rule.rule_id == "A05-502-001")
+
+    assert rule.severity == "high"
+
+    findings = engine.detect(
+        "pickle.loads(request.data)",
+        language="python",
+        file_name="deserialize.py",
+    )
+    finding = next(item for item in findings if item["rule_id"] == "A05-502-001")
+
+    assert finding["severity"] == "high"

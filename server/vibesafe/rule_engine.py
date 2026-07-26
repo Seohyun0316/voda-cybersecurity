@@ -488,7 +488,7 @@ class RuleEngine:
                     rule_id=item["id"],
                     name=item["name"],
                     description=item["desc"],
-                    severity=item["severity"].lower(),
+                    severity=_normalize_severity(item["severity"]),
                     cwes=tuple(item.get("cwe", ())),
                     pattern=re.compile(expanded),
                     allowlist=tuple(
@@ -530,6 +530,16 @@ class RuleEngine:
                 "replacement": replacement,
             },
         }
+
+
+def _normalize_severity(value: str) -> str:
+    """Normalize ruleset severities to the high/medium/low API contract."""
+    normalized = value.strip().lower()
+    if normalized == "critical":
+        return "high"
+    if normalized not in {"high", "medium", "low"}:
+        raise ValueError(f"지원하지 않는 severity 값입니다: {value}")
+    return normalized
 
 
 def _expand_keyword_sets(pattern: str, keyword_sets: dict[str, list[str]]) -> str:
