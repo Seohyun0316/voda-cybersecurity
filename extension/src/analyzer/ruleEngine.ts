@@ -35,6 +35,46 @@ const PIPA_29: LegalRisk = {
   sanction: 1,  // 과징금·과태료 사례 있음
 };
 
+const SQLI_LEGAL: LegalRisk = {
+  law: '개인정보보호법, 정보통신망법, 형법',
+  article: 'CWE-89',
+  description: 'SQL Injection으로 개인정보 유출 가능',
+  liability: 3,
+  sanction: 2,
+};
+
+const COMMAND_INJECTION_LEGAL: LegalRisk = {
+  law: '정보통신망법',
+  article: 'CWE-77,78',
+  description: 'OS Command Injection',
+  liability: 3,
+  sanction: 2,
+};
+
+const FILE_UPLOAD_LEGAL: LegalRisk = {
+  law: '정보통신망법',
+  article: 'CWE-434',
+  description: '위험한 파일 업로드',
+  liability: 3,
+  sanction: 2,
+};
+
+const DESERIALIZATION_LEGAL: LegalRisk = {
+  law: '정보통신망법',
+  article: 'CWE-502',
+  description: '안전하지 않은 역직렬화',
+  liability: 3,
+  sanction: 2,
+};
+
+const SSRF_LEGAL: LegalRisk = {
+  law: '정보통신망법',
+  article: 'CWE-918',
+  description: 'Server Side Request Forgery',
+  liability: 3,
+  sanction: 2,
+};
+
 function envVarFix(varName: string, languageId: string): { title: string; replacement: string } {
   const name = varName.toUpperCase();
   const replacement =
@@ -100,22 +140,74 @@ const RULES: Rule[] = [
     detail: '운영 배포 시 내부 정보 노출 위험',
   },
   {
-  id: 'verify-false',
-  pattern: /\bverify\s*=\s*False\b/g,
+  id: 'dangerous-file-upload',
+  pattern: /\b(move_uploaded_file|MultipartFile|IFormFile|multer|upload)\b/g,
   severity: 'warning',
-  category: 'crypto',
-  message: 'SSL 인증 검증이 비활성화되었습니다.',
-  detail: 'verify=True를 사용하거나 인증서를 올바르게 설정하세요.',
+  category: 'other',
+  message: '위험한 파일 업로드 가능성',
+  detail: '확장자, MIME Type, 파일명을 검증하세요.',
+  legal: FILE_UPLOAD_LEGAL,
   },
   {
-  id: 'resident-registration-number',
-  pattern: /\b\d{6}-[1-4]\d{6}\b/g,
+  id: 'hardcoded-credential',
+  pattern: /\b(api[_-]?key|token|access[_-]?key|secret[_-]?key)\s*=\s*["'][^"']+["']/gi,
   severity: 'error',
   category: 'secret',
-  message: '주민등록번호가 포함되어 있습니다.',
-  detail: '개인정보는 코드에 저장하거나 공개하면 안 됩니다.',
+  message: '하드코딩된 자격증명',
+  detail: '환경변수 또는 Secret Manager 사용 권장',
   legal: PIPA_29,
-  }
+  },
+  {
+  id: 'path-traversal',
+  pattern: /\.\.\//g,
+  severity: 'warning',
+  category: 'injection',
+  message: 'Path Traversal 가능성',
+  detail: '사용자 입력으로 경로를 생성하지 마세요.',
+  legal: {
+    law: '정보통신망법',
+    article: 'CWE-22',
+    description: '경로 탐색',
+    liability: 2,
+    sanction: 2,
+  },
+  },
+  {
+  id: 'os-command-injection',
+  pattern: /\b(exec|system|Runtime\.getRuntime\(\)|subprocess\.Popen|os\.system)\b/g,
+  severity: 'error',
+  category: 'injection',
+  message: 'OS Command Injection 위험',
+  detail: '쉘 명령에 사용자 입력을 전달하지 마세요.',
+  legal: COMMAND_INJECTION_LEGAL,
+  },
+  {
+  id: 'unsafe-deserialization',
+  pattern: /\b(pickle\.loads|ObjectInputStream|BinaryFormatter|deserialize)\b/g,
+  severity: 'error',
+  category: 'other',
+  message: '안전하지 않은 역직렬화',
+  detail: '신뢰할 수 없는 데이터를 역직렬화하지 마세요.',
+  legal: DESERIALIZATION_LEGAL,
+  },
+  {
+  id: 'ssrf',
+  pattern: /\b(requests\.get|axios\.get|fetch|http\.get|urllib\.request)\b/g,
+  severity: 'warning',
+  category: 'injection',
+  message: 'SSRF 가능성',
+  detail: '사용자 입력 URL을 직접 요청하지 마세요.',
+  legal: SSRF_LEGAL,
+  },
+  {
+  id: 'personal-info',
+  pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+  severity: 'warning',
+  category: 'secret',
+  message: '개인정보(이메일) 노출',
+  detail: '소스코드에 개인정보를 저장하지 마세요.',
+  legal: PIPA_29,
+  },
 ];
 
 export class RuleEngineAnalyzer implements Analyzer {
