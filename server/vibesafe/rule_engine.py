@@ -54,98 +54,405 @@ CATEGORY_BY_CWE = {
 }
 
 
-FIX_BY_CWE = {
+# title, replacement, replace_entire_line
+#
+# replacement는 설명문이 아니라 Python 코드 예시만 담는다. 실제 프로젝트의
+# 변수명과 프레임워크는 알 수 없으므로, 새 룰에 대한 CWE fallback은 사용자가
+# 자신의 문맥에 맞게 바꿔 쓸 수 있는 보수적인 범용 예시다. 활성 룰은 아래의
+# FIX_BY_RULE에서 실제 정규식 매치 범위에 맞는 템플릿을 별도로 지정한다.
+FIX_BY_CWE: dict[str, tuple[str, str, bool]] = {
     "CWE-20": (
-        "입력값 검증 추가",
-        "입력값을 허용 목록과 명시적인 스키마로 검증한 뒤 사용하세요.",
+        "스키마 검증을 통과한 값만 사용",
+        "validated_value = schema.load(untrusted_value)",
+        True,
     ),
     "CWE-22": (
-        "안전한 경로로 제한",
-        "기준 디렉터리에서 경로를 해석하고, 결과가 그 디렉터리 내부인지 확인하세요.",
+        "기준 디렉터리 내부 경로만 허용",
+        'base_dir = Path("/srv/app/data").resolve()\n'
+        "safe_path = (base_dir / user_path).resolve()\n"
+        'if base_dir not in safe_path.parents:\n    raise ValueError("invalid path")',
+        True,
     ),
     "CWE-77": (
-        "명령과 인자 분리",
-        "subprocess.run([command, arg], shell=False, check=True)를 사용하세요.",
+        "명령과 인자를 분리해 실행",
+        'subprocess.run(["command", str(argument)], shell=False, check=True)',
+        True,
     ),
     "CWE-78": (
-        "셸 실행 제거",
-        "subprocess.run([command, arg], shell=False, check=True)를 사용하세요.",
+        "셸 없이 인자 배열로 실행",
+        'subprocess.run([command, str(argument)], shell=False, check=True)',
+        True,
     ),
     "CWE-79": (
-        "출력 이스케이프 적용",
-        "신뢰할 수 있는 템플릿의 자동 이스케이프를 사용하고 mark_safe 사용을 제거하세요.",
+        "자동 이스케이프 템플릿 사용",
+        'return render_template("result.html", value=untrusted_value)',
+        True,
     ),
     "CWE-89": (
         "매개변수화 쿼리 사용",
-        'cursor.execute("SELECT ... WHERE id = %s", (user_id,))',
+        'cursor.execute("SELECT * FROM items WHERE id = %s", (item_id,))',
+        True,
     ),
     "CWE-94": (
-        "동적 코드 실행 제거",
-        "eval/exec 대신 허용된 명령을 명시적으로 매핑해 실행하세요.",
+        "JSON 파서로 명시적인 데이터만 처리",
+        "payload = json.loads(untrusted_data)",
+        True,
     ),
     "CWE-200": (
-        "민감정보 노출 제거",
-        "응답과 소스 코드에서 불필요한 개인정보 및 민감정보를 제거하세요.",
+        "공개 필드만 새 응답에 포함",
+        'public_payload = {"id": record.id, "name": record.name}',
+        True,
     ),
     "CWE-201": (
         "응답 필드 최소화",
-        "허용된 공개 필드만 새 응답 객체에 담아 반환하세요.",
+        'return jsonify({"id": current_user.id, "name": current_user.name})',
+        True,
     ),
     "CWE-209": (
-        "일반화된 오류 응답",
-        "내부 예외는 서버에 기록하고 클라이언트에는 일반 오류 메시지만 반환하세요.",
+        "내부 예외와 외부 오류 메시지 분리",
+        'app.logger.exception("request failed")\n'
+        'return jsonify({"error": "Internal server error"}), 500',
+        True,
     ),
     "CWE-256": (
-        "비밀번호 단방향 해시",
-        "비밀번호는 Argon2id 또는 bcrypt로 해시한 값만 저장하세요.",
+        "Argon2id로 비밀번호 해시",
+        "password_hash = password_hasher.hash(password)",
+        True,
     ),
     "CWE-295": (
-        "TLS 검증 활성화",
-        "인증서 및 호스트명 검증을 활성화하고 신뢰할 CA를 설정하세요.",
+        "TLS 인증서 검증 활성화",
+        "response = requests.get(url, verify=True, timeout=10)",
+        True,
     ),
     "CWE-307": (
-        "인증 시도 제한 추가",
-        "계정과 IP별 로그인 시도 횟수를 제한하고 지연 또는 잠금 정책을 적용하세요.",
+        "인증 요청 속도 제한",
+        '@limiter.limit("5 per minute")',
+        True,
     ),
     "CWE-327": (
-        "안전한 암호 알고리즘 사용",
-        "용도에 맞는 최신 암호 알고리즘과 라이브러리 기본값을 사용하세요.",
+        "SHA-256 해시 사용",
+        "digest = hashlib.sha256(data).hexdigest()",
+        True,
     ),
-    "CWE-330": ("보안 난수 사용", "보안 토큰은 Python secrets 모듈로 생성하세요."),
+    "CWE-330": (
+        "보안 난수로 토큰 생성",
+        "import secrets\ntoken = secrets.token_urlsafe(32)",
+        True,
+    ),
     "CWE-352": (
         "CSRF 보호 활성화",
-        "상태 변경 요청에 CSRF 검증을 적용하고 예외 설정을 제거하세요.",
+        "WTF_CSRF_ENABLED = True",
+        True,
     ),
     "CWE-359": (
-        "개인정보 하드코딩 제거",
-        "실제 개인정보를 코드에서 제거하고 테스트용 예약 도메인을 사용하세요.",
+        "개인정보를 환경변수로 분리",
+        'import os\nemail = os.environ["USER_EMAIL"]',
+        True,
     ),
     "CWE-434": (
-        "업로드 검증 추가",
-        "파일명, 확장자, MIME 유형, 크기를 검증하고 안전한 저장명을 생성하세요.",
+        "안전한 파일명으로 업로드 저장",
+        "safe_name = secure_filename(uploaded_file.filename)\n"
+        "uploaded_file.save(Path(UPLOAD_DIR) / safe_name)",
+        True,
     ),
     "CWE-502": (
-        "안전한 역직렬화",
-        "신뢰할 수 없는 입력에는 JSON과 명시적 스키마 검증을 사용하세요.",
+        "JSON으로 역직렬화",
+        "payload = json.loads(untrusted_data)",
+        True,
     ),
     "CWE-532": (
-        "민감정보 로그 제거",
-        "민감값을 로그에서 제거하거나 마스킹한 값만 기록하세요.",
+        "민감값 대신 이벤트만 기록",
+        'logger.info("Authentication event completed")',
+        True,
     ),
     "CWE-770": (
-        "자원 사용량 제한",
-        "요청 크기, 반복 횟수, 메모리 할당량 및 타임아웃에 상한을 두세요.",
+        "요청 크기 제한",
+        "MAX_CONTENT_LENGTH = 1 * 1024 * 1024",
+        True,
     ),
-    "CWE-798": ("환경변수로 교체", 'secret = os.environ["SECRET"]'),
+    "CWE-798": (
+        "환경변수에서 비밀값 로드",
+        'import os\nsecret = os.environ["SECRET"]',
+        True,
+    ),
     "CWE-862": (
-        "인가 검사 추가",
-        "인증된 사용자의 권한과 대상 자원 소유권을 서버에서 확인하세요.",
+        "인증된 사용자만 허용",
+        "permission_classes = [IsAuthenticated]",
+        True,
     ),
     "CWE-918": (
-        "요청 대상 제한",
-        "URL을 파싱한 뒤 허용된 스킴과 호스트만 서버 측 요청에 사용하세요.",
+        "허용된 HTTPS 호스트만 요청",
+        "parsed = urlparse(target_url)\n"
+        'if parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS:\n'
+        '    raise ValueError("untrusted URL")\n'
+        "response = requests.get(target_url, timeout=10)",
+        True,
     ),
 }
+
+
+# 활성 Python 룰별 수정 예시. 정규식이 완전한 표현식을 잡는지, 줄의 일부만
+# 잡는지에 따라 replace_entire_line을 명시한다.
+FIX_BY_RULE: dict[str, tuple[str, str, bool]] = {
+    "PII-201-001": (
+        "공개 필드만 응답",
+        'return jsonify({"id": current_user.id, "name": current_user.name})',
+        True,
+    ),
+    "PII-201-002": (
+        "민감 필드를 제외한 응답",
+        'return jsonify({"id": current_user.id, "name": current_user.name})',
+        True,
+    ),
+    "PII-209-001": (
+        "내부 예외와 외부 메시지 분리",
+        'app.logger.exception("request failed")\n'
+        'return jsonify({"error": "Internal server error"}), 500',
+        True,
+    ),
+    "PII-532-001": (
+        "민감값 대신 이벤트만 기록",
+        'logger.info("Authentication event completed")',
+        True,
+    ),
+    "A02-352-001": ("CSRF 보호 데코레이터 사용", "@csrf_protect", False),
+    "A02-352-002": ("CSRF 보호 활성화", "WTF_CSRF_ENABLED = True", True),
+    "A02-434-001": (
+        "검증된 파일명으로 저장",
+        "from pathlib import Path\n"
+        "from werkzeug.utils import secure_filename\n"
+        "safe_name = secure_filename(uploaded_file.filename)\n"
+        "uploaded_file.save(Path(UPLOAD_DIR) / safe_name)",
+        True,
+    ),
+    "A02-862-003": (
+        "관리자 권한 적용",
+        "from rest_framework.permissions import IsAdminUser\n"
+        "class AdminView(APIView):\n"
+        "    permission_classes = [IsAdminUser]",
+        True,
+    ),
+    "A02-295-001": (
+        "TLS 검증과 타임아웃 활성화",
+        "response = requests.get(url, verify=True, timeout=10)",
+        True,
+    ),
+    "A02-295-002": (
+        "기본 TLS 컨텍스트 사용",
+        "context = ssl.create_default_context()",
+        True,
+    ),
+    "A04-327-001": (
+        "SHA-256으로 무결성 해시 생성",
+        "digest = hashlib.sha256(data).hexdigest()",
+        True,
+    ),
+    "A04-330-001": (
+        "보안 난수 토큰 사용",
+        "import secrets\ntoken = secrets.token_urlsafe(32)",
+        True,
+    ),
+    "A04-798-001": (
+        "DB 비밀번호를 환경변수에서 로드",
+        'import os\nDB_PASSWORD = os.environ["DB_PASSWORD"]',
+        True,
+    ),
+    "A04-798-002": (
+        "API 키를 환경변수에서 로드",
+        'import os\nOPENAI_API_KEY = os.environ["OPENAI_API_KEY"]',
+        True,
+    ),
+    "A04-798-003": (
+        "접근 토큰을 환경변수에서 로드",
+        'import os\nACCESS_TOKEN = os.environ["ACCESS_TOKEN"]',
+        True,
+    ),
+    "A04-798-005": (
+        "DB 접속 문자열을 환경변수에서 로드",
+        'import os\nuri = os.environ["DATABASE_URL"]',
+        True,
+    ),
+    "A05-20-001": (
+        "허용된 내부 경로로만 이동",
+        'next_url = request.args.get("next", "/")\n'
+        'return redirect(next_url if next_url in {"/", "/dashboard"} else "/")',
+        True,
+    ),
+    "A05-22-001": (
+        "기준 디렉터리 내부 경로만 열기",
+        "from pathlib import Path\n"
+        'base_dir = Path("/srv/app/data").resolve()\n'
+        'safe_path = (base_dir / request.args["path"]).resolve()\n'
+        'if base_dir not in safe_path.parents:\n    raise ValueError("invalid path")\n'
+        'with safe_path.open("rb") as file:\n    data = file.read()',
+        True,
+    ),
+    "A05-78-001": (
+        "명령과 인자를 분리해 실행",
+        'import subprocess\nsubprocess.run(["command", str(argument)], shell=False, check=True)',
+        True,
+    ),
+    "A05-78-002": (
+        "셸 없이 인자 배열로 실행",
+        "subprocess.run([command, str(argument)], shell=False, check=True)",
+        True,
+    ),
+    "A05-89-001": (
+        "매개변수화 쿼리 사용",
+        'cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))',
+        True,
+    ),
+    "A05-94-001": (
+        "JSON 데이터로 제한해 파싱",
+        "import json\npayload = json.loads(request.data)",
+        True,
+    ),
+    "A05-79-004": (
+        "자동 이스케이프 템플릿 사용",
+        'from flask import render_template\n'
+        'return render_template("result.html", name=request.args["name"])',
+        True,
+    ),
+    "A05-79-005": (
+        "고정 템플릿 사용",
+        'return render_template("result.html", content=request.data)',
+        True,
+    ),
+    "A05-502-001": (
+        "JSON 역직렬화 사용",
+        "import json\npayload = json.loads(request.data)",
+        True,
+    ),
+    "A05-502-003": (
+        "YAML SafeLoader 사용",
+        "payload = yaml.safe_load(untrusted_data)",
+        True,
+    ),
+    "A05-918-001": (
+        "허용된 HTTPS 호스트만 요청",
+        "from urllib.parse import urlparse\n"
+        'target_url = request.args["url"]\n'
+        "parsed = urlparse(target_url)\n"
+        'if parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS:\n'
+        '    raise ValueError("untrusted URL")\n'
+        "response = requests.get(target_url, timeout=10)",
+        True,
+    ),
+    "A10-770-005": (
+        "유한한 요청 타임아웃 설정",
+        "response = requests.get(url, timeout=10)",
+        True,
+    ),
+    "A10-770-007": (
+        "요청 본문을 1 MiB로 제한",
+        "MAX_CONTENT_LENGTH = 1 * 1024 * 1024",
+        True,
+    ),
+}
+
+
+def _assignment_name(matched_text: str, default: str) -> str:
+    """Return a conservative Python identifier from an assignment-like match."""
+    match = re.match(
+        r"""(?ix)^\s*["']?([A-Za-z_][A-Za-z0-9_]*)["']?
+        \s*(?::[^=\r\n]+)?\s*(?:=|:=|:)""",
+        matched_text,
+    )
+    return match.group(1) if match else default
+
+
+def _environment_fix(
+    matched_text: str,
+    default_variable: str,
+    default_environment: str,
+    title: str,
+) -> tuple[str, str, bool]:
+    variable = _assignment_name(matched_text, default_variable)
+    environment = re.sub(r"[^A-Za-z0-9]+", "_", variable).strip("_").upper()
+    if not environment:
+        environment = default_environment
+    return (
+        title,
+        f'import os\n{variable} = os.environ["{environment}"]',
+        True,
+    )
+
+
+def _fix_for_match(
+    rule_id: str,
+    primary_cwe: str,
+    matched_text: str | None,
+) -> tuple[str, str, bool]:
+    fallback = FIX_BY_CWE.get(
+        primary_cwe,
+        (
+            "검증된 값만 사용",
+            "validated_value = validate(untrusted_value)",
+            True,
+        ),
+    )
+    default = FIX_BY_RULE.get(rule_id, fallback)
+    if not matched_text:
+        return default
+
+    if rule_id == "A04-798-001":
+        return _environment_fix(
+            matched_text,
+            "secret",
+            "SECRET",
+            "비밀값을 환경변수에서 로드",
+        )
+    if rule_id == "A04-798-002":
+        return _environment_fix(
+            matched_text,
+            "api_key",
+            "API_KEY",
+            "API 키를 환경변수에서 로드",
+        )
+    if rule_id == "A04-798-003":
+        return _environment_fix(
+            matched_text,
+            "access_token",
+            "ACCESS_TOKEN",
+            "접근 토큰을 환경변수에서 로드",
+        )
+    if rule_id == "A04-327-001":
+        lowered = matched_text.lower()
+        if any(token in lowered for token in ("des", "rc4", "arc4", "ecb")):
+            return (
+                "AES-GCM 인증 암호화 사용",
+                "from cryptography.hazmat.primitives.ciphers.aead import AESGCM\n"
+                "cipher = AESGCM(key)\n"
+                "ciphertext = cipher.encrypt(nonce, plaintext, associated_data)",
+                True,
+            )
+        if any(
+            token in lowered
+            for token in ("password", "passwd", "pwd", "credential", "secret")
+        ):
+            return (
+                "Argon2id 비밀번호 해시 사용",
+                "from argon2 import PasswordHasher\n"
+                "password_hash = PasswordHasher().hash(password)",
+                True,
+            )
+        return default
+    if rule_id == "A02-352-001" and not matched_text.lstrip().startswith("@"):
+        return (
+            "CSRF 보호 래퍼 적용",
+            "from django.views.decorators.csrf import csrf_protect\n"
+            "protected_view = csrf_protect(view)",
+            True,
+        )
+    if rule_id == "A05-20-001" and "render_template_string" in matched_text.lower():
+        return (
+            "고정 템플릿에 값으로 전달",
+            "return render_template("
+            '"result.html", value=request.get_json(silent=True)'
+            ")",
+            True,
+        )
+    return default
 
 # 감지된 위험의 두 번째 줄에 노출할 짧은 대응 안내.
 # 내부 룰 이름 대신 사용자가 바로 적용할 수 있는 권고 문구를 보여준다.
@@ -520,7 +827,15 @@ class RuleEngine:
                 line, start_col, end_col = _coordinates(
                     code, line_starts, match.start(), match.end()
                 )
-                findings.append(self._to_finding(rule, line, start_col, end_col))
+                findings.append(
+                    self._to_finding(
+                        rule,
+                        line,
+                        start_col,
+                        end_col,
+                        matched_text=matched_text,
+                    )
+                )
 
         findings.sort(
             key=lambda item: (item["line"], item["start_col"], item["rule_id"])
@@ -561,12 +876,17 @@ class RuleEngine:
 
     @staticmethod
     def _to_finding(
-        rule: CompiledRule, line: int, start_col: int, end_col: int
+        rule: CompiledRule,
+        line: int,
+        start_col: int,
+        end_col: int,
+        matched_text: str | None = None,
     ) -> dict[str, Any]:
         primary_cwe = rule.cwes[0] if rule.cwes else ""
-        fix_title, replacement = FIX_BY_CWE.get(
+        fix_title, replacement, replace_entire_line = _fix_for_match(
+            rule.rule_id,
             primary_cwe,
-            ("안전한 구현으로 교체", "탐지된 패턴을 제거하고 안전한 API를 사용하세요."),
+            matched_text,
         )
         legal = LEGAL_BY_CWE.get(primary_cwe)
         legal_response = dict(legal) if legal else None
@@ -592,6 +912,7 @@ class RuleEngine:
             "fix": {
                 "title": fix_title,
                 "replacement": replacement,
+                "replace_entire_line": replace_entire_line,
             },
         }
 

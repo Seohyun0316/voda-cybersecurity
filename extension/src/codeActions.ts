@@ -99,13 +99,14 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
       range.start.character,
       range.end.character,
       replacement,
+      finding.fix?.replaceEntireLine,
     );
     const contents = new vscode.MarkdownString(undefined, true);
     contents.appendMarkdown('$(lightbulb) **VibeSafe 수정 제안**\n\n');
     contents.appendMarkdown('**제안 내용:** ');
     contents.appendText(finding.fix?.title ?? '안전한 코드로 변경');
     contents.appendMarkdown('\n\n');
-    contents.appendMarkdown('🛡️ **변경 전 → 안전 코드**\n\n');
+    contents.appendMarkdown('🛡️ **변경 전 → 안전 구현 예시**\n\n');
     contents.appendCodeblock(
       buildSuggestedCodeDiff(originalLine, preview),
       'diff',

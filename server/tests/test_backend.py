@@ -1,3 +1,4 @@
+import ast
 import re
 
 import pytest
@@ -7,6 +8,7 @@ from vibesafe.rule_engine import (
     CATEGORY_BY_CWE,
     DETAIL_BY_CWE,
     FIX_BY_CWE,
+    FIX_BY_RULE,
     LEGAL_BY_CWE,
     SANCTION_TYPE_BY_CWE,
     WARNING_BY_CWE,
@@ -59,7 +61,11 @@ def test_detect_returns_candidate_accepted_by_ml_filter(client):
     assert finding["legal"]["law"] == "개인정보보호법"
     assert finding["legal"]["sanction_type"] == "형사처벌, 과징금·과태료"
     assert finding["detail"] == "환경변수(.env) 또는 Secrets Manager 사용 권장"
-    assert finding["fix"]["title"] == "환경변수로 교체"
+    assert finding["fix"]["title"] == "비밀값을 환경변수에서 로드"
+    assert finding["fix"]["replacement"] == (
+        'import os\npassword = os.environ["PASSWORD"]'
+    )
+    assert finding["fix"]["replace_entire_line"] is True
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T.*Z", body["analyzed_at"])
 
 
@@ -238,6 +244,67 @@ def test_every_active_rule_uses_a_documented_legal_mapping():
         assert rule.cwes
         assert rule.cwes[0] in LEGAL_BY_CWE
         assert rule.cwes[0] in SANCTION_TYPE_BY_CWE
+
+
+def test_every_active_rule_has_a_rule_specific_code_template():
+    engine = RuleEngine("config/ruleset.toml")
+    active_rule_ids = {rule.rule_id for rule in engine.rules}
+
+    assert set(FIX_BY_RULE) == active_rule_ids
+
+    for rule_id, (title, replacement, replace_entire_line) in FIX_BY_RULE.items():
+        assert title
+        assert replacement.strip()
+        assert isinstance(replace_entire_line, bool)
+        assert not any(
+            prose in replacement
+            for prose in ("하세요", "권장", "사용하세요", "제거하세요")
+        ), f"{rule_id} replacement에는 설명문이 아니라 코드가 필요합니다"
+        if replace_entire_line:
+            ast.parse(replacement)
+
+
+def test_password_hash_data_hash_and_cipher_receive_different_code_templates():
+    engine = RuleEngine("config/ruleset.toml")
+
+    data_hash_finding = next(
+        item
+        for item in engine.detect(
+            "digest = hashlib.md5(data).hexdigest()",
+            language="python",
+            file_name="crypto.py",
+        )
+        if item["rule_id"] == "A04-327-001"
+    )
+    password_hash_finding = next(
+        item
+        for item in engine.detect(
+            "digest = hashlib.md5(password.encode()).hexdigest()",
+            language="python",
+            file_name="passwords.py",
+        )
+        if item["rule_id"] == "A04-327-001"
+    )
+    cipher_finding = next(
+        item
+        for item in engine.detect(
+            "cipher = AES.new(key, AES.MODE_ECB)",
+            language="python",
+            file_name="crypto.py",
+        )
+        if item["rule_id"] == "A04-327-001"
+    )
+
+    assert "hashlib.sha256" in data_hash_finding["fix"]["replacement"]
+    assert "PasswordHasher" in password_hash_finding["fix"]["replacement"]
+    assert "AESGCM" in cipher_finding["fix"]["replacement"]
+    assert len(
+        {
+            data_hash_finding["fix"]["replacement"],
+            password_hash_finding["fix"]["replacement"],
+            cipher_finding["fix"]["replacement"],
+        }
+    ) == 3
 
 
 def test_critical_deserialization_rule_is_normalized_to_high():

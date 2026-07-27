@@ -52,6 +52,8 @@ export interface LegalRisk {
 export interface FixSuggestion {
   title: string;        // 예: "환경변수로 교체"
   replacement?: string; // 해당 범위에 제안할 대체 문자열
+  /** true면 탐지 범위가 아니라 현재 코드 줄 전체를 대체하는 완성형 예시 */
+  replaceEntireLine?: boolean;
 }
 
 /** 탐지된 위험 1건 */

@@ -36,7 +36,11 @@ test('/detect v1.0 응답을 내부 모델로 변환', () => {
             sanction: 1,
             sanction_type: '과징금·과태료',
           },
-          fix: { title: '환경변수로 교체', replacement: 'API_KEY = os.environ["API_KEY"]' },
+          fix: {
+            title: '환경변수로 교체',
+            replacement: 'API_KEY = os.environ["API_KEY"]',
+            replace_entire_line: true,
+          },
         },
       ],
     },
@@ -54,6 +58,7 @@ test('/detect v1.0 응답을 내부 모델로 변환', () => {
   assert.strictEqual(f.legal?.liability, 2, '구조화된 legal 그대로 전달');
   assert.strictEqual(f.legal?.sanctionType, '과징금·과태료', '표시용 제재 유형 변환');
   assert.strictEqual(f.fix?.replacement, 'API_KEY = os.environ["API_KEY"]');
+  assert.strictEqual(f.fix?.replaceEntireLine, true);
   assert.strictEqual(f.riskScore, 75, '개별 finding 점수 전달');
   assert.strictEqual(result.riskScore, 75, '백엔드 전체 점수 사용');
   assert.strictEqual(result.engine, 'remote');
@@ -300,6 +305,19 @@ test('잘못된 날짜와 legal·fix 중첩 구조를 거부', () => {
       findings: [{ ...finding, fix: { replacement: 'safe_code' } }],
     }),
     /fix\.title/,
+  );
+  assert.throws(
+    () => validateDetectResponse({
+      findings: [{
+        ...finding,
+        fix: {
+          title: '안전 코드',
+          replacement: 'safe_code',
+          replace_entire_line: 'yes',
+        },
+      }],
+    }),
+    /fix\.replace_entire_line.*불리언/,
   );
 });
 

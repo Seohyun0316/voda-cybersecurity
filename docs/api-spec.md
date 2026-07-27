@@ -139,7 +139,7 @@ Content-Type: application/json
 | `detail` | string | 예 | 룰 또는 대응 방법에 대한 상세 설명이다. |
 | `risk_score` | number | 예 | 이 finding의 PDF 산식 기준 `0`~`100` 점수이다. |
 | `legal` | Legal \| null | 아니요 | 법적 정보가 없으면 생략하거나 `null`로 보낸다. |
-| `fix` | Fix \| null | 아니요 | 안전한 자동 치환이 가능한 경우에만 제공한다. |
+| `fix` | Fix \| null | 아니요 | 안전한 대체 코드 예시를 제공할 수 있을 때만 포함한다. |
 
 현재 응답에는 `end_line`이 없다. 여러 줄에 걸친 패턴은 시작 줄에서 첫 줄의
 끝까지만 표시한다.
@@ -190,15 +190,27 @@ Extension의 점수 계산에서 `liability: null`은 `1`, `sanction: null`은 `
 
 ```json
 {
-  "title": "SHA-256으로 교체",
-  "replacement": "hashlib.sha256"
+  "title": "DB 비밀번호를 환경변수에서 로드",
+  "replacement": "import os\nDB_PASSWORD = os.environ[\"DB_PASSWORD\"]",
+  "replace_entire_line": true
 }
 ```
 
-`replacement`는 `line`, `start_col`, `end_col`이 지정한 범위를 그대로 대체할
-실행 가능한 소스 코드여야 한다. 설명 문장, 의사 코드, 추가 import 없이는
-동작하지 않는 코드는 `replacement`로 보내지 않는다. 이 조건을 만족하지
-못하면 서버는 `fix`를 생략하거나 `null`로 보낸다.
+| 필드 | 타입 | 필수 | 규칙 |
+| --- | --- | --- | --- |
+| `title` | string | 예 | 사용자에게 보여줄 짧은 수정 방향이다. |
+| `replacement` | string | 아니요 | 설명문이 아닌 소스 코드 예시다. 여러 줄일 수 있다. |
+| `replace_entire_line` | boolean | 아니요 | `true`면 현재 줄 전체, `false`면 탐지 범위만 대체해 미리 본다. |
+
+`replacement`는 그대로 자동 적용하는 패치가 아니라, 사용자가 프로젝트 문맥에
+맞게 조정할 수 있는 안전한 구현 예시다. 프로젝트마다 다른 변수명, 프레임워크,
+import와 라이브러리 초기화는 조정이 필요할 수 있다. 다만 설명 문장이나
+“검증하세요” 같은 지시문은 넣지 않고 실제 언어의 코드 형태로 제공한다.
+
+`replace_entire_line`이 생략된 구버전 응답은 호환성을 위해 기존 휴리스틱을
+사용한다. 새 서버는 매칭 범위와 완성형 예시의 범위가 다를 수 있으므로 이 값을
+명시한다. Extension은 이 코드를 hover로만 보여주며 원본 문서를 자동 변경하지
+않는다.
 
 ## 8. 위험 점수
 

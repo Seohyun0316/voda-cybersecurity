@@ -40,7 +40,11 @@ export interface DetectFinding {
   detail?: string;
   risk_score?: number;
   legal?: DetectLegal | null;
-  fix?: { title: string; replacement?: string } | null;
+  fix?: {
+    title: string;
+    replacement?: string;
+    replace_entire_line?: boolean;
+  } | null;
 }
 
 export interface DetectResponse {
@@ -161,7 +165,13 @@ export function mapDetectResponse(
           sanctionType: d.legal.sanction_type,
         }
       : undefined,
-    fix: d.fix ?? undefined,
+    fix: d.fix
+      ? {
+          title: d.fix.title,
+          replacement: d.fix.replacement,
+          replaceEntireLine: d.fix.replace_entire_line,
+        }
+      : undefined,
     riskScore: d.risk_score,
   }));
 
@@ -266,6 +276,12 @@ function validateFix(value: unknown, path: string): void {
   const fix = expectObject(value, path);
   expectNonEmptyString(fix.title, `${path}.title`);
   validateOptionalString(fix.replacement, `${path}.replacement`);
+  if (
+    fix.replace_entire_line !== undefined
+    && typeof fix.replace_entire_line !== 'boolean'
+  ) {
+    invalid(`${path}.replace_entire_line`, '불리언이어야 합니다');
+  }
 }
 
 function validateOptionalScore(

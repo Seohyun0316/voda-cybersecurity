@@ -5,6 +5,7 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert';
 import { RuleEngineAnalyzer } from '../analyzer/ruleEngine';
+import { buildSuggestedCodePreview } from '../fixSuggestionPreview';
 import {
   computeFindingRiskScore,
   computeRiskScore,
@@ -32,7 +33,7 @@ test('OpenAI API 키 탐지', async () => {
   assert.strictEqual(f!.category, 'cost');
   assert.strictEqual(
     f!.fix?.replacement,
-    'os.environ.get("OPENAI_API_KEY")',
+    'os.environ["OPENAI_API_KEY"]',
     '따옴표까지 포함한 키를 환경변수 표현식으로 교체해야 함',
   );
 });
@@ -42,7 +43,8 @@ test('SQL Injection 탐지', async () => {
   const result = await engine.analyze(code, 'auth.py', 'python');
   const f = result.findings.find((x) => x.ruleId === 'sql-injection');
   assert.ok(f);
-  assert.ok(f!.fix?.replacement?.includes('?'), '바인딩 파라미터 수정 제안이 있어야 함');
+  assert.ok(f!.fix?.replacement?.includes('%s'), '바인딩 파라미터 수정 제안이 있어야 함');
+  assert.strictEqual(f!.fix?.replaceEntireLine, true);
 });
 
 test('SSRF 법 조항은 개인정보보호법 제29조로 표시', async () => {
@@ -62,10 +64,14 @@ test('MD5 해싱 탐지', async () => {
   const result = await engine.analyze('hashed = hashlib.md5(password.encode())', 'auth.py', 'python');
   const f = result.findings.find((x) => x.ruleId === 'weak-hash');
   assert.ok(f);
-  assert.strictEqual(f!.fix?.replacement, 'sha256(');
+  assert.strictEqual(
+    f!.fix?.replacement,
+    'password_hash = PasswordHasher().hash(password)',
+  );
+  assert.strictEqual(f!.fix?.replaceEntireLine, true);
 });
 
-test('팀원 구현의 자동 수정 대상 4건을 모두 제공', async () => {
+test('탐지된 수정 가능 룰 5건에 모두 대체 코드를 제공', async () => {
   const code = [
     'DB_PASSWORD = "admin1234"',
     'API_KEY = "sk-proj-xK92abcdef123"',
@@ -79,7 +85,13 @@ test('팀원 구현의 자동 수정 대상 4건을 모두 제공', async () => 
 
   assert.deepStrictEqual(
     fixableRuleIds,
-    ['hardcoded-password', 'exposed-api-key', 'sql-injection', 'weak-hash'],
+    [
+      'hardcoded-password',
+      'exposed-api-key',
+      'hardcoded-credential',
+      'sql-injection',
+      'weak-hash',
+    ],
   );
 });
 
@@ -99,10 +111,13 @@ test('자동 수정을 위에서부터 1건씩 적용해도 다음 위치를 다
 
     const lines = code.split('\n');
     const line = lines[target.line];
-    lines[target.line] =
-      line.slice(0, target.startCol) +
-      target.fix.replacement +
-      line.slice(target.endCol);
+    lines[target.line] = buildSuggestedCodePreview(
+      line,
+      target.startCol,
+      target.endCol,
+      target.fix.replacement,
+      target.fix.replaceEntireLine,
+    );
     code = lines.join('\n');
     applied += 1;
   }
@@ -110,9 +125,109 @@ test('자동 수정을 위에서부터 1건씩 적용해도 다음 위치를 다
   const finalResult = await engine.analyze(code, 'auth.py', 'python');
   assert.strictEqual(applied, 4);
   assert.ok(finalResult.findings.every((finding) => !finding.fix?.replacement));
-  assert.ok(code.includes('DB_PASSWORD = os.environ.get("DB_PASSWORD")'));
-  assert.ok(code.includes('API_KEY = os.environ.get("OPENAI_API_KEY")'));
-  assert.ok(code.includes('hashlib.sha256(password.encode())'));
+  assert.ok(code.includes('DB_PASSWORD = os.environ["DB_PASSWORD"]'));
+  assert.ok(code.includes('API_KEY = os.environ["OPENAI_API_KEY"]'));
+  assert.ok(code.includes('password_hash = PasswordHasher().hash(password)'));
+});
+
+test('지원 언어별 환경변수 대체 코드를 제공', async () => {
+  const cases = [
+    ['python', 'password = "admin1234"', 'password = os.environ["PASSWORD"]'],
+    ['javascript', 'const password = "admin1234"', 'const password = process.env.PASSWORD;'],
+    ['typescript', 'const password = "admin1234"', 'const password = process.env.PASSWORD;'],
+    ['java', 'String password = "admin1234"', 'String password = System.getenv("PASSWORD");'],
+    ['go', 'var password = "admin1234"', 'password := os.Getenv("PASSWORD")'],
+    ['php', '$password = "admin1234"', '$password = getenv("PASSWORD");'],
+    ['ruby', 'password = "admin1234"', 'password = ENV.fetch("PASSWORD")'],
+  ] as const;
+
+  for (const [language, code, expected] of cases) {
+    const result = await engine.analyze(code, `auth.${language}`, language);
+    const finding = result.findings.find((item) => item.ruleId === 'hardcoded-password');
+
+    assert.ok(finding, `${language} 하드코딩 비밀번호를 탐지해야 함`);
+    assert.strictEqual(finding.fix?.replacement, expected);
+    assert.strictEqual(finding.fix?.replaceEntireLine, true);
+  }
+});
+
+test('명령 실행과 역직렬화에도 언어별 완성형 대체 코드를 제공', async () => {
+  const commandResult = await engine.analyze(
+    'os.system(user_input)',
+    'commands.py',
+    'python',
+  );
+  const commandFinding = commandResult.findings.find(
+    (item) => item.ruleId === 'os-command-injection',
+  );
+  assert.strictEqual(
+    commandFinding?.fix?.replacement,
+    'subprocess.run(["command", str(argument)], shell=False, check=True)',
+  );
+  assert.strictEqual(commandFinding?.fix?.replaceEntireLine, true);
+
+  const deserializeResult = await engine.analyze(
+    'pickle.loads(request.data)',
+    'payload.py',
+    'python',
+  );
+  const deserializeFinding = deserializeResult.findings.find(
+    (item) => item.ruleId === 'unsafe-deserialization',
+  );
+  assert.strictEqual(
+    deserializeFinding?.fix?.replacement,
+    'payload = json.loads(untrusted_data)',
+  );
+  assert.strictEqual(deserializeFinding?.fix?.replaceEntireLine, true);
+});
+
+test('업로드·경로·SSRF·개인정보 탐지도 범용 대체 코드를 제공', async () => {
+  const cases = [
+    {
+      code: 'upload.save(upload.filename)',
+      fileName: 'upload.py',
+      ruleId: 'dangerous-file-upload',
+      expected: 'secure_filename',
+    },
+    {
+      code: 'open("../private.txt")',
+      fileName: 'files.py',
+      ruleId: 'path-traversal',
+      expected: 'safe_path',
+    },
+    {
+      code: 'requests.get(target_url)',
+      fileName: 'proxy.py',
+      ruleId: 'ssrf',
+      expected: 'ALLOWED_HOSTS',
+    },
+    {
+      code: 'email = "real.user@example.com"',
+      fileName: 'profile.py',
+      ruleId: 'personal-info',
+      expected: 'os.environ["EMAIL"]',
+    },
+  ] as const;
+
+  for (const item of cases) {
+    const result = await engine.analyze(item.code, item.fileName, 'python');
+    const finding = result.findings.find((candidate) => candidate.ruleId === item.ruleId);
+
+    assert.ok(finding, `${item.ruleId}를 탐지해야 함`);
+    assert.ok(finding.fix?.replacement?.includes(item.expected));
+    assert.strictEqual(finding.fix?.replaceEntireLine, true);
+  }
+});
+
+test('PHP 명령 실행에도 셸을 우회하는 대체 코드를 제공', async () => {
+  const result = await engine.analyze('system($userInput);', 'command.php', 'php');
+  const finding = result.findings.find(
+    (candidate) => candidate.ruleId === 'os-command-injection',
+  );
+
+  assert.ok(finding);
+  assert.ok(finding.fix?.replacement?.includes('proc_open(['));
+  assert.strictEqual(finding.fix?.replaceEntireLine, true);
 });
 
 test('안전한 코드는 탐지 없음', async () => {

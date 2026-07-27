@@ -16,7 +16,7 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 | message | 한국어, 한 줄, "무엇이 위험한지" (예: `하드코딩 비밀번호 — 개인정보보호법 §29`) |
 | detail | 한국어, 한 줄, "어떻게 고치는지" (예: `환경변수(.env) 사용 권장`) |
 | legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction, sanctionType? }` — liability/sanction은 아래 표의 값 필수 |
-| fix.replacement | 해당 범위(line, startCol~endCol)에 제안할 대체 문자열. UI는 원문을 변경하지 않고 hover 미리보기로만 표시 |
+| fix.replacement | 설명문이 아닌 대체 코드 예시. `replaceEntireLine`이 true면 현재 줄 전체, false면 탐지 범위를 바꾼 미리보기로 표시 |
 | analyzedAt | ISO 8601 문자열 |
 
 **위험도 점수 (`docs/risk-scoring.md` 기준)**
@@ -52,7 +52,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 | severity 매핑 | high → error, medium → warning, low → info |
 | category | 백엔드 상세 카테고리를 `api-spec.md` 표에 따라 다섯 UI 카테고리로 변환 |
 | legal | `liability`, `sanction`은 MVP에서 `null` 허용. 표시용 제재 유형은 API의 `sanction_type`을 사용 |
-| fix | 지정 범위에 제안할 수 있는 실행 코드일 때만 허용. 클라이언트는 자동 적용하지 않음 |
+| fix | 대체 코드 예시와 선택적 `replace_entire_line` 범위를 전달. 클라이언트는 자동 적용하지 않음 |
 | ML | 룰 후보의 2차 필터이며 확률은 응답에 노출하지 않음 |
 | risk_score | 서버는 현재 findings의 최대 점수를 반환; 누락/null이면 클라이언트가 §1 공식으로 계산 |
 | 오류 | non-2xx를 원격 분석 실패로 처리 |
