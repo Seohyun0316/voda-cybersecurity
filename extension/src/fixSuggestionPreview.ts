@@ -19,3 +19,18 @@ export function buildSuggestedCodePreview(
     + replacement
     + line.slice(endColumn);
 }
+
+/** Hover에서 변경 전·후를 한눈에 비교할 수 있는 diff 코드 블록을 만든다. */
+export function buildSuggestedCodeDiff(
+  originalLine: string,
+  suggestedCode: string,
+): string {
+  const removed = originalLine
+    .split(/\r?\n/)
+    .map((line) => `- ${line}`);
+  const added = suggestedCode
+    .split(/\r?\n/)
+    .map((line) => `+ ${line}`);
+
+  return [...removed, ...added].join('\n');
+}

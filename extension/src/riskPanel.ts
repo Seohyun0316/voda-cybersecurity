@@ -1,6 +1,6 @@
 /**
- * 사이드 위험 분석 패널 (F1 담당). 목업 오른쪽 VibeSafe 패널을 WebviewView로 구현.
- * 위험도 점수 바, 감지된 위험 목록, 법적 리스크, 과금 경보, 수동 검사 버튼.
+ * 사이드 위험 분석 패널 (F1 담당).
+ * 위험도 점수, 유형별로 묶은 탐지 결과, 법적 리스크, 과금 경보를 표시한다.
  */
 import * as vscode from 'vscode';
 import {
@@ -11,8 +11,14 @@ import {
   groupLegalRisks,
   riskLabel,
 } from './analyzer';
+
 interface PanelCallbacks {
   onScan: () => void;
+}
+
+interface FindingGroup {
+  representative: Finding;
+  findings: Finding[];
 }
 
 export class RiskPanelProvider implements vscode.WebviewViewProvider {
@@ -53,17 +59,22 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   }
 
   private render(): string {
-    const r = this.lastResult;
-    const score = r?.riskScore ?? 0;
-    const findings = r?.findings ?? [];
-    const legal = groupLegalRisks(findings);
-    const cost = findings.filter(
-      (f) =>
-        f.category === 'cost' ||
-        f.ruleId === 'exposed-api-key' ||
-        f.ruleId === 'A04-798-002',
+    const result = this.lastResult;
+    const score = result?.riskScore ?? 0;
+    const findings = result?.findings ?? [];
+    const findingGroups = groupFindings(findings);
+    const legalGroups = groupLegalRisks(findings);
+    // TODO: cost에는 API 키 노출뿐 아니라 resource_exhaustion도 포함된다.
+    // 과금 경고를 위험 유형별 안내 문구로 나눠, 자원 제한 위험에 키 폐기를 권하지 않도록 한다.
+    const costFindings = findings.filter(
+      (finding) =>
+        finding.category === 'cost' ||
+        finding.ruleId === 'exposed-api-key' ||
+        finding.ruleId === 'A04-798-002',
     );
-    const scoreColor = score >= 70 ? '#f48771' : score >= 40 ? '#f0a500' : '#4caf50';
+    const scoreTone = score >= 70 ? 'high' : score >= 40 ? 'medium' : score > 0 ? 'low' : 'safe';
+    const scoreColor = score >= 70 ? '#e05d44' : score >= 40 ? '#c98200' : '#2e9b65';
+    const fileName = baseName(result?.fileName ?? '');
 
     const logoUri = this.view
       ? this.view.webview
@@ -71,155 +82,505 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
           .toString()
       : '';
 
-    const findingItems = findings
-      .map(
-        (f: Finding) => `
-        <div class="item" data-line="${f.line}">
-          <span class="icon ${f.severity}">${f.severity === 'error' ? '⛔' : f.severity === 'warning' ? '⚠️' : 'ℹ️'}</span>
-          <div class="text">${escapeHtml(f.message)}<small>${escapeHtml(baseName(r?.fileName ?? ''))} ${f.line + 1}번 줄 — ${escapeHtml(f.detail)}</small></div>
-        </div>`,
-      )
+    const findingCards = findingGroups
+      .map((group) => renderFindingGroup(group, fileName))
       .join('');
 
-    const legalItems = legal
+    const legalCards = legalGroups
       .map(
         (group) => `
-        <div class="item">
-          <span class="icon legal">⚖️</span>
-          <div class="text">${escapeHtml(group.law)} ${escapeHtml(group.article)}
-            <ul class="legal-list">${group.items
-              .map(
-                ({ legal: item }) =>
-                  `<li>${escapeHtml(`${compactLegalDescription(item.description)} (${compactSanctionLabel(item)} 가능)`)}</li>`,
-              )
-              .join('')}</ul>
+        <div class="legal-card">
+          <div class="legal-heading">
+            <span class="legal-icon" aria-hidden="true">⚖️</span>
+            <div>
+              <strong>${escapeHtml(group.law)}</strong>
+              <span>${escapeHtml(group.article)}</span>
+            </div>
           </div>
+          <ul class="legal-list">
+            ${group.items
+              .map(({ legal }) => {
+                const description = compactLegalDescription(legal.description) || legal.description;
+                return `<li>
+                  <span>${escapeHtml(description)}</span>
+                  <small>${escapeHtml(compactSanctionLabel(legal))} 가능</small>
+                </li>`;
+              })
+              .join('')}
+          </ul>
         </div>`,
       )
       .join('');
 
-    const costItems = cost
-      .map(
-        (f) => `
-        <div class="item">
-          <span class="icon cost">💸</span>
-          <div class="text">${escapeHtml(f.message)}<small>${escapeHtml(f.detail)}</small></div>
-        </div>`,
-      )
-      .join('');
+    const analyzedAt = result
+      ? new Date(result.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
 
     return /* html */ `<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); font-size: 12px; padding: 0 8px; }
+  * { box-sizing: border-box; }
 
-  .header-container {
+  body {
+    margin: 0;
+    padding: 10px 12px 16px;
+    color: var(--vscode-foreground);
+    background: var(--vscode-sideBar-background);
+    font-family: var(--vscode-font-family);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  button, summary { font: inherit; }
+
+  .header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-top: 6px;
-    margin-bottom: 12px;
+    gap: 9px;
+    margin: 1px 0 12px;
   }
-  .logo-wrapper {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
-    border-radius: 50%;
+
+  .logo {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #ffffff;
-    border: 1px solid #4b8bec;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent);
+    border-radius: 10px;
+    background: #fff;
   }
-  .logo-wrapper img {
+
+  .logo img {
     width: 100%;
     height: 100%;
     object-fit: contain;
   }
-  .header-text {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .title-text {
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-    color: #4b8bec;
-  }
-  .sub-desc {
-    font-size: 11px;
+
+  .brand {
     color: var(--vscode-descriptionForeground);
-    margin-top: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.1px;
   }
+
+  .page-title {
+    margin-top: -1px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
   .analyze-btn {
+    display: flex;
     width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     margin-bottom: 12px;
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    color: var(--vscode-button-secondaryForeground, #ffffff);
+    padding: 8px 10px;
     border: 1px solid var(--vscode-button-border, transparent);
-    border-radius: 4px;
-    padding: 7px;
+    border-radius: 6px;
+    color: var(--vscode-button-foreground);
+    background: var(--vscode-button-background);
     font-weight: 600;
     cursor: pointer;
   }
-  .analyze-btn:hover { background: var(--vscode-button-secondaryHoverBackground, #45494e); }
-  .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--vscode-descriptionForeground); margin: 12px 0 6px; }
-  .bar-bg { background: var(--vscode-progressBar-background, #3a3a3a); opacity: 0.3; border-radius: 3px; height: 6px; }
-  .bar-wrap { position: relative; height: 6px; }
-  .bar-fill { position: absolute; top: 0; left: 0; background: linear-gradient(90deg, #f0a500, #e51400); height: 6px; border-radius: 3px; }
-  .score { font-size: 18px; font-weight: 600; margin-top: 6px; }
-  .score span { font-size: 10px; font-weight: 400; color: var(--vscode-descriptionForeground); }
-  .item { display: flex; gap: 6px; padding: 4px 0; align-items: flex-start; cursor: pointer; }
-  .item:hover { background: var(--vscode-list-hoverBackground); }
-  .icon { flex-shrink: 0; font-size: 12px; }
-  .text { line-height: 1.4; }
-  .text small { display: block; color: var(--vscode-descriptionForeground); font-size: 10px; }
-  .legal-list { margin: 2px 0 0; padding-left: 14px; color: var(--vscode-descriptionForeground); font-size: 10px; line-height: 1.4; }
-  .legal-list li { margin: 1px 0; }
-  .empty { color: var(--vscode-descriptionForeground); padding: 4px 0; }
-  .engine { margin-top: 8px; font-size: 10px; color: var(--vscode-descriptionForeground); }
+
+  .analyze-btn:hover { background: var(--vscode-button-hoverBackground); }
+  .analyze-btn:focus-visible,
+  summary:focus-visible,
+  .location-link:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+  }
+
+  .score-card {
+    margin-bottom: 18px;
+    padding: 12px;
+    border: 1px solid var(--vscode-widget-border, transparent);
+    border-radius: 8px;
+    background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  }
+
+  .score-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 7px;
+  }
+
+  .score-label {
+    color: var(--vscode-descriptionForeground);
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .status-badge {
+    padding: 1px 7px;
+    border-radius: 999px;
+    color: ${scoreColor};
+    background: color-mix(in srgb, ${scoreColor} 14%, transparent);
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .score-value {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .score-value strong {
+    color: ${scoreColor};
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .score-value span {
+    color: var(--vscode-descriptionForeground);
+    font-size: 10px;
+  }
+
+  .bar {
+    height: 5px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--vscode-descriptionForeground) 18%, transparent);
+  }
+
+  .bar-fill {
+    width: ${score}%;
+    height: 100%;
+    border-radius: inherit;
+    background: ${scoreColor};
+    transition: width 180ms ease;
+  }
+
+  .section { margin-top: 18px; }
+
+  .section-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 1px 8px;
+  }
+
+  .section-heading h2 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .section-heading span {
+    color: var(--vscode-descriptionForeground);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .finding-card {
+    margin-bottom: 7px;
+    overflow: hidden;
+    border: 1px solid var(--vscode-widget-border, transparent);
+    border-left: 3px solid var(--severity-color);
+    border-radius: 7px;
+    background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  }
+
+  .finding-card.error { --severity-color: #e05d44; }
+  .finding-card.warning { --severity-color: #c98200; }
+  .finding-card.info { --severity-color: #3c8dd9; }
+
+  .finding-card summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 9px 9px;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .finding-card summary::-webkit-details-marker { display: none; }
+  .finding-card summary:hover { background: var(--vscode-list-hoverBackground); }
+
+  .severity-mark {
+    width: 18px;
+    flex: 0 0 18px;
+    margin-top: 1px;
+    font-size: 14px;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .finding-main {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .finding-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .finding-title {
+    min-width: 0;
+    flex: 1;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+
+  .count-badge {
+    flex: 0 0 auto;
+    padding: 1px 6px;
+    border-radius: 999px;
+    color: var(--vscode-descriptionForeground);
+    background: color-mix(in srgb, var(--vscode-descriptionForeground) 12%, transparent);
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  .finding-summary {
+    display: -webkit-box;
+    margin: 4px 0 0;
+    overflow: hidden;
+    color: var(--vscode-descriptionForeground);
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .finding-meta {
+    margin-top: 5px;
+    color: var(--vscode-descriptionForeground);
+    font-family: var(--vscode-editor-font-family);
+    font-size: 9px;
+  }
+
+  .chevron {
+    flex: 0 0 auto;
+    margin-top: 1px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 16px;
+    line-height: 1;
+    transition: transform 120ms ease;
+  }
+
+  details[open] .chevron { transform: rotate(90deg); }
+
+  .finding-detail {
+    margin-left: 25px;
+    padding: 0 10px 10px;
+    border-top: 1px solid var(--vscode-widget-border, transparent);
+  }
+
+  .detail-label {
+    margin: 8px 0 2px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .detail-copy { margin: 0; }
+
+  .locations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .location-link {
+    padding: 2px 6px;
+    border: 1px solid var(--vscode-widget-border, transparent);
+    border-radius: 4px;
+    color: var(--vscode-textLink-foreground);
+    background: var(--vscode-button-secondaryBackground);
+    font-size: 9px;
+    cursor: pointer;
+  }
+
+  .location-link:hover { background: var(--vscode-button-secondaryHoverBackground); }
+
+  .legal-card {
+    padding: 10px;
+    border: 1px solid var(--vscode-widget-border, transparent);
+    border-radius: 7px;
+    background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  }
+
+  .legal-card + .legal-card { margin-top: 7px; }
+
+  .legal-heading {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .legal-heading > div {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  .legal-heading strong { font-size: 11px; }
+
+  .legal-heading span {
+    color: var(--vscode-descriptionForeground);
+    font-size: 10px;
+  }
+
+  .legal-icon {
+    width: 20px;
+    flex: 0 0 20px;
+    border-radius: 5px;
+    font-size: 14px;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .legal-list {
+    margin: 8px 0 0 25px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .legal-list li {
+    display: flex;
+    flex-direction: column;
+    margin-top: 6px;
+  }
+
+  .legal-list small {
+    color: var(--vscode-descriptionForeground);
+    font-size: 9px;
+  }
+
+  .cost-alert {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid color-mix(in srgb, #c98200 35%, transparent);
+    border-radius: 7px;
+    background: color-mix(in srgb, #c98200 8%, var(--vscode-sideBar-background));
+  }
+
+  .cost-alert strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+  }
+
+  .cost-alert p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+  }
+
+  .empty {
+    padding: 12px 10px;
+    border: 1px dashed var(--vscode-widget-border, var(--vscode-descriptionForeground));
+    border-radius: 7px;
+    color: var(--vscode-descriptionForeground);
+    text-align: center;
+  }
+
+  .engine {
+    margin-top: 16px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 9px;
+    text-align: right;
+  }
 </style>
 </head>
-<body>
-  <div class="header-container">
-    <div class="logo-wrapper">
-      ${logoUri ? `<img src="${logoUri}" alt="VibeSafe Logo" />` : ''}
+<body data-score-tone="${scoreTone}">
+  <header class="header">
+    <div class="logo">
+      ${logoUri ? `<img src="${logoUri}" alt="" />` : ''}
     </div>
-    <div class="header-text">
-      <div class="title-text">VIBESAFE : 위험 분석</div>
-      <div class="sub-desc">실시간 보안 · 법적 위험 분석</div>
+    <div>
+      <div class="brand">VIBESAFE</div>
+      <div class="page-title">위험 분석</div>
     </div>
+  </header>
+
+  <button id="run-analysis" class="analyze-btn">
+    <span aria-hidden="true">🔍</span>
+    현재 코드 검사하기
+  </button>
+
+  <section class="score-card" aria-label="현재 위험도">
+    <div class="score-top">
+      <span class="score-label">현재 위험도</span>
+      <span class="status-badge">${riskLabel(score)}</span>
+    </div>
+    <div class="score-value">
+      <strong>${score}</strong>
+      <span>/ 100</span>
+    </div>
+    <div
+      class="bar"
+      role="progressbar"
+      aria-label="위험도 점수"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="${score}"
+    >
+      <div class="bar-fill"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-heading">
+      <h2>감지된 위험</h2>
+      <span>${findings.length}건 · ${findingGroups.length}개 유형</span>
+    </div>
+    ${findingCards || '<div class="empty">감지된 위험이 없습니다</div>'}
+  </section>
+
+  ${legalCards ? `
+  <section class="section">
+    <div class="section-heading">
+      <h2>법적 리스크</h2>
+      <span>${legalGroups.length}개 조항</span>
+    </div>
+    ${legalCards}
+  </section>` : ''}
+
+  ${costFindings.length > 0 ? `
+  <section class="section">
+    <div class="section-heading">
+      <h2>API 과금 경고</h2>
+      <span>${costFindings.length}건</span>
+    </div>
+    <div class="cost-alert">
+      <span aria-hidden="true">💸</span>
+      <div>
+        <strong>노출된 키를 즉시 확인하세요</strong>
+        <p>무단 사용을 막기 위해 키를 폐기하고 새 키로 교체하는 것을 권장합니다.</p>
+      </div>
+    </div>
+  </section>` : ''}
+
+  <div class="engine">
+    ${result ? `${result.engine === 'remote' ? 'ML 백엔드' : '로컬 규칙'} · ${escapeHtml(analyzedAt)}` : '검사 대기 중'}
   </div>
-
-  <button id="run-analysis" class="analyze-btn">🔍 지금 코드 검사하기</button>
-
-  <div class="label">위험도 점수</div>
-  <div class="bar-wrap"><div class="bar-bg"></div><div class="bar-fill" style="width:${score}%"></div></div>
-  <div class="score" style="color:${scoreColor}">${score} <span>/ 100 — ${riskLabel(score)}</span></div>
-
-  <div class="label">감지된 위험 (${findings.length})</div>
-  ${findingItems || '<div class="empty">감지된 위험이 없습니다 ✅</div>'}
-
-  <div class="label">법적 리스크</div>
-  ${legalItems || '<div class="empty">해당 없음</div>'}
-
-  <div class="label">💸 API 과금 경보</div>
-  ${costItems || '<div class="empty">해당 없음</div>'}
-
-  <div class="engine">엔진: ${r?.engine === 'remote' ? 'ML 백엔드' : '로컬 규칙'}${r ? ` · ${new Date(r.analyzedAt).toLocaleTimeString()}` : ''}</div>
 
 <script>
   const vscode = acquireVsCodeApi();
   document.getElementById('run-analysis')?.addEventListener('click', () => {
     vscode.postMessage({ type: 'runAnalysis' });
   });
-  document.querySelectorAll('.item[data-line]').forEach(el => {
-    el.addEventListener('click', () => vscode.postMessage({ type: 'gotoLine', line: Number(el.dataset.line) }));
+  document.querySelectorAll('.location-link[data-line]').forEach((element) => {
+    element.addEventListener('click', () => {
+      vscode.postMessage({ type: 'gotoLine', line: Number(element.dataset.line) });
+    });
   });
 </script>
 </body>
@@ -227,10 +588,129 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   }
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function groupFindings(findings: Finding[]): FindingGroup[] {
+  const groups = new Map<string, FindingGroup>();
+
+  for (const finding of findings) {
+    const key = [
+      finding.ruleId,
+      finding.severity,
+      finding.category,
+      normalizeText(finding.message),
+      normalizeText(finding.detail),
+    ].join('\u0000');
+    const group = groups.get(key);
+    if (group) {
+      group.findings.push(finding);
+    } else {
+      groups.set(key, { representative: finding, findings: [finding] });
+    }
+  }
+
+  return [...groups.values()];
 }
 
-function baseName(p: string): string {
-  return p.split(/[\\/]/).pop() ?? p;
+function renderFindingGroup(group: FindingGroup, fileName: string): string {
+  const finding = group.representative;
+  const { title, summary } = presentFinding(finding);
+  const lineNumbers = [...new Set(group.findings.map((item) => item.line + 1))]
+    .sort((a, b) => a - b);
+  const severityLabel =
+    finding.severity === 'error' ? '높은 위험' : finding.severity === 'warning' ? '주의' : '정보';
+  const severityMark =
+    finding.severity === 'error' ? '⛔' : finding.severity === 'warning' ? '⚠️' : 'ℹ️';
+  const locationSummary = formatLineSummary(lineNumbers);
+
+  return `
+    <details class="finding-card ${finding.severity}">
+      <summary>
+        <span class="severity-mark" aria-label="${severityLabel}">${severityMark}</span>
+        <div class="finding-main">
+          <div class="finding-title-row">
+            <span class="finding-title">${escapeHtml(title)}</span>
+            <span class="count-badge">${group.findings.length}건</span>
+          </div>
+          ${summary ? `<p class="finding-summary">${escapeHtml(summary)}</p>` : ''}
+          <div class="finding-meta">${escapeHtml(fileName)} · ${escapeHtml(locationSummary)}</div>
+        </div>
+        <span class="chevron" aria-hidden="true">›</span>
+      </summary>
+      <div class="finding-detail">
+        <div class="detail-label">권장 조치</div>
+        <p class="detail-copy">${escapeHtml(finding.detail)}</p>
+        <div class="detail-label">탐지 위치</div>
+        <div class="locations">
+          ${lineNumbers
+            .map(
+              (lineNumber) =>
+                `<button class="location-link" data-line="${lineNumber - 1}" title="${escapeHtml(fileName)} ${lineNumber}번 line으로 이동">${lineNumber}번 line</button>`,
+            )
+            .join('')}
+        </div>
+      </div>
+    </details>`;
+}
+
+function presentFinding(finding: Finding): { title: string; summary: string } {
+  const sentences =
+    finding.message
+      .trim()
+      .match(/[^.!?]+[.!?]?/g)
+      ?.map((sentence) => sentence.trim())
+      .filter(Boolean) ?? [];
+  const firstSentence = sentences.shift() ?? finding.message;
+  let title = firstSentence
+    .replace(/^\[ML\]\s*/i, '')
+    .replace(/[.!?]+$/, '')
+    .replace(/\s*(?:이|가|을|를)?\s*(?:탐지|발견|사용)되었습니다$/, '')
+    .trim();
+
+  if (
+    finding.legal &&
+    (title.includes(finding.legal.law) || title.includes(finding.legal.article))
+  ) {
+    title = title.split(/\s+[—–]\s+/)[0].trim();
+  }
+
+  const summary = sentences
+    .filter((sentence) => !isLegalBoilerplate(sentence, finding))
+    .slice(0, 2)
+    .join(' ');
+
+  return {
+    title: title || finding.message,
+    summary,
+  };
+}
+
+function isLegalBoilerplate(sentence: string, finding: Finding): boolean {
+  return Boolean(
+    sentence.includes('관련 보안조치') ||
+      sentence.includes('개인정보보호법') ||
+      (finding.legal &&
+        (sentence.includes(finding.legal.law) || sentence.includes(finding.legal.article))),
+  );
+}
+
+function formatLineSummary(lines: number[]): string {
+  if (lines.length === 0) return '위치 정보 없음';
+  if (lines.length <= 3) return `${lines.join(', ')}번 line`;
+  return `${lines.slice(0, 2).join(', ')}번 line 외 ${lines.length - 2}곳`;
+}
+
+function normalizeText(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function baseName(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
 }

@@ -9,7 +9,10 @@ import {
   createDocumentSnapshot,
   isDocumentSnapshotCurrent,
 } from './documentSnapshot';
-import { buildSuggestedCodePreview } from './fixSuggestionPreview';
+import {
+  buildSuggestedCodeDiff,
+  buildSuggestedCodePreview,
+} from './fixSuggestionPreview';
 
 interface CachedAnalysis {
   result: AnalysisResult;
@@ -75,8 +78,9 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
     if (!replacement) return undefined;
 
     const range = findingRange(document, finding);
+    const originalLine = document.lineAt(range.start.line).text;
     const preview = buildSuggestedCodePreview(
-      document.lineAt(range.start.line).text,
+      originalLine,
       range.start.character,
       range.end.character,
       replacement,
@@ -86,7 +90,11 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
     contents.appendMarkdown('**제안 내용:** ');
     contents.appendText(finding.fix?.title ?? '안전한 코드로 변경');
     contents.appendMarkdown('\n\n');
-    contents.appendCodeblock(preview, codeBlockLanguage(document.languageId));
+    contents.appendMarkdown('🛡️ **변경 전 → 안전 코드**\n\n');
+    contents.appendCodeblock(
+      buildSuggestedCodeDiff(originalLine, preview),
+      'diff',
+    );
     contents.isTrusted = false;
 
     return new vscode.Hover(contents, document.lineAt(position.line).range);
@@ -167,15 +175,4 @@ function findingRange(
   const start = Math.min(Math.max(finding.startCol, 0), lineLength);
   const end = Math.min(Math.max(finding.endCol, start), lineLength);
   return new vscode.Range(line, start, line, end);
-}
-
-function codeBlockLanguage(languageId: string): string {
-  switch (languageId) {
-    case 'javascriptreact':
-      return 'javascript';
-    case 'typescriptreact':
-      return 'typescript';
-    default:
-      return languageId;
-  }
 }
