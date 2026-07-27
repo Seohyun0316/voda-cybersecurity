@@ -1,0 +1,12 @@
+﻿{
+    "product":  "VibeSafe",
+    "version":  "0.1.0",
+    "built_at_utc":  "2026-07-27T13:36:21.1911449Z",
+    "git_commit":  "ff66addc18bb8847b7bd1bd42c6e32fbed51a061",
+    "working_tree_clean":  false,
+    "backend_bind":  "127.0.0.1:38457",
+    "artifacts":  [
+                      "VibeSafe-0.1.0.vsix",
+                      "VibeSafe-backend-0.1.0.zip"
+                  ]
+}
