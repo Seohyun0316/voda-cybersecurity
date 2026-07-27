@@ -142,9 +142,14 @@ $BackendZipName = "VibeSafe-backend-$Version.zip"
 $BackendZipPath = Join-Path $PublishRoot $BackendZipName
 Compress-Archive -LiteralPath $BackendRoot -DestinationPath $BackendZipPath -CompressionLevel Optimal
 
-$ReadmeTemplate = Get-Content -Raw -Encoding utf8 (Join-Path $PackagingRoot "publish-README.md")
+$ReadmeTemplate = Get-Content -Raw -Encoding utf8 -LiteralPath (Join-Path $PackagingRoot "publish-README.md")
 $ReadmeTemplate.Replace("{{VERSION}}", $Version) |
     Set-Content -Encoding utf8 (Join-Path $PublishRoot "README.md")
+
+$UserGuideName = "USER-GUIDE.md"
+$UserGuideTemplate = Get-Content -Raw -Encoding utf8 -LiteralPath (Join-Path $PackagingRoot "user-guide.md")
+$UserGuideTemplate.Replace("{{VERSION}}", $Version) |
+    Set-Content -Encoding utf8 (Join-Path $PublishRoot $UserGuideName)
 
 $GitCommit = (& git -C $RepoRoot rev-parse HEAD).Trim()
 Assert-NativeSuccess "Unable to determine the Git commit."
