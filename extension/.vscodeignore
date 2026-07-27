@@ -1,1 +1,13 @@
+.vscode/**
+.gitignore
+src/**
+out/test/**
+out/**/*.map
+sample/**
+mock-server/**
+scripts/**
 reference/**
+CONTRACT.md
+TUTORIAL.md
+tsconfig.json
+package-lock.json

@@ -58,7 +58,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 | 오류 | non-2xx를 원격 분석 실패로 처리 |
 | 타임아웃 | 클라이언트 10초 |
 | 인증 | MVP 없음 |
-| 기본 URL | `http://localhost:5000/detect` |
+| 기본 URL | `http://127.0.0.1:38457/detect` |
 
 백엔드 응답과 Extension 어댑터의 통합 테스트도 이 계약을 기준으로 작성한다.
 
@@ -75,7 +75,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 
 - 명령 ID: `vibesafe.<동사구>` (예: `vibesafe.analyzeFile`, `vibesafe.showPanel`)
 - 뷰 ID: `vibesafe.riskPanel`, 뷰 컨테이너 ID: `vibesafe`
-- 설정 키: `vibesafe.<camelCase>` — 현재 `engine`(기본 `remote`), `remoteEndpoint`(기본 `http://localhost:5000/detect`)
+- 설정 키: `vibesafe.<camelCase>` — 현재 `engine`(기본 `remote`), `remoteEndpoint`(기본 `http://127.0.0.1:38457/detect`)
 - 진단 source: `VibeSafe`, DiagnosticCollection 이름: `vibesafe`
 
 ## 5. 동작 스펙

@@ -42,9 +42,12 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-기본 로컬 주소는 `http://127.0.0.1:5000`입니다. 포트 5000은 로컬 개발에 사용해도 괜찮습니다. 다른 프로그램이나 프론트엔드가 이미 5000번을 사용한다면 변경해야 합니다.
+기본 로컬 주소는 `http://127.0.0.1:38457`입니다. 일반적인 개발 서버와의 충돌을 줄이기 위해 Flask 기본 포트 대신 고정 포트 38457을 사용합니다.
 
-현재 개발 서버는 `0.0.0.0:5000`으로 실행됩니다. 신뢰할 수 없는 네트워크에서는 실행하지 말고, 운영 환경에서는 Flask 개발 서버 대신 운영용 WSGI 서버와 리버스 프록시를 사용해야 합니다.
+배포 번들은 `127.0.0.1:38457`에만 바인딩됩니다. 같은 PC의 VS Code
+Extension에서 호출하는 로컬 보조 프로세스 용도이며 외부 네트워크에서는
+접속할 수 없습니다. 인터넷에 공개하는 서비스로 전환하려면 Flask 개발 서버
+대신 운영용 WSGI 서버, 인증, 요청 제한과 HTTPS 구성이 별도로 필요합니다.
 
 ## API
 
@@ -78,7 +81,7 @@ python -m pip install -r requirements-dev.txt
 python -B -m pytest -p no:cacheprovider -q
 ```
 
-정상 결과는 `43 passed`입니다. ML만 확인하려면 다음을 실행합니다.
+정상 결과는 `45 passed`입니다. ML만 확인하려면 다음을 실행합니다.
 
 ```powershell
 python scripts/predict_model.py A04-798-001 --code 'password = "secret-value"'

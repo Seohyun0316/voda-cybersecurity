@@ -58,23 +58,26 @@
         },
         "vibesafe.remoteEndpoint": {
           "type": "string",
-          "default": "http://localhost:5000/detect",
-          "description": "ML 백엔드 /detect API 엔드포인트 (Flask 기본 5000, mock 서버 테스트 시 http://localhost:8788/detect)"
+          "default": "http://127.0.0.1:38457/detect",
+          "description": "로컬 ML 백엔드 /detect API 엔드포인트 (배포 기본 38457, mock 서버 테스트 시 http://localhost:8788/detect)"
         }
       }
     }
   },
   "scripts": {
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "test": "node --test \"out/test/**/*.test.js\"",
+    "package:vsix": "vsce package --allow-missing-repository --skip-license",
     "mock-server": "node mock-server/server.js",
     "batch": "node scripts/batchAnalyze.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "3.9.2",
     "typescript": "^5.4.0"
   }
 }

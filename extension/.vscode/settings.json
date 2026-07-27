@@ -1,4 +1,4 @@
 {
   "vibesafe.engine": "remote",
-  "vibesafe.remoteEndpoint": "http://localhost:5000/detect"
+  "vibesafe.remoteEndpoint": "http://127.0.0.1:38457/detect"
 }
