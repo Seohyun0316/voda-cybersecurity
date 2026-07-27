@@ -20,7 +20,11 @@ export class DiagnosticsManager {
   }
 
   update(uri: vscode.Uri, result: AnalysisResult): void {
-    this.collection.set(uri, result.findings.map(toDiagnostic));
+    this.updateFindings(uri, result.findings);
+  }
+
+  updateFindings(uri: vscode.Uri, findings: readonly Finding[]): void {
+    this.collection.set(uri, findings.map(toDiagnostic));
   }
 
   clear(uri: vscode.Uri): void {

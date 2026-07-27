@@ -24,6 +24,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const statusBar = new StatusBarManager(context);
   const codeActions = new VibeSafeCodeActionProvider();
   let latestScanId = 0;
+  let lastConfirmedUri: string | undefined;
   const panel = new RiskPanelProvider(
     context.extensionUri,
     {
@@ -77,24 +78,25 @@ export function activate(context: vscode.ExtensionContext): void {
         doc.languageId,
       );
       if (!isCurrentScan(scanId, analyzedSnapshot)) {
-        if (scanId === latestScanId) statusBar.setIdle();
+        if (scanId === latestScanId) restoreStatusForActiveEditor();
         return;
       }
       diagnostics.update(doc.uri, result);
       codeActions.setResult(result, analyzedSnapshot);
-      statusBar.update(result);
       panel.update(result);
+      lastConfirmedUri = analyzedSnapshot.uri;
+      statusBar.update(result);
     } catch (err) {
       if (!isCurrentScan(scanId, analyzedSnapshot)) {
-        if (scanId === latestScanId) statusBar.setIdle();
+        if (scanId === latestScanId) restoreStatusForActiveEditor();
         return;
       }
       if (retrying) {
-        statusBar.setIdle();
+        restoreStatusForActiveEditor();
         return;
       }
       if (selectedAnalyzer.kind !== 'remote') {
-        statusBar.setIdle();
+        restoreStatusForActiveEditor();
         vscode.window.showErrorMessage(
           `VibeSafe: 로컬 분석 실패 (${err instanceof Error ? err.message : err}).`,
         );
@@ -130,6 +132,19 @@ export function activate(context: vscode.ExtensionContext): void {
     );
   }
 
+  function restoreStatusForActiveEditor(): void {
+    const activeUri = vscode.window.activeTextEditor?.document.uri.toString();
+    if (!activeUri || activeUri !== lastConfirmedUri || !panel.lastResult) {
+      statusBar.setIdle();
+      return;
+    }
+    if (panel.isStale) {
+      statusBar.setStale();
+      return;
+    }
+    statusBar.update(panel.lastResult);
+  }
+
   context.subscriptions.push(
     vscode.commands.registerCommand('vibesafe.analyzeFile', () => runScan()),
     vscode.commands.registerCommand(
@@ -141,17 +156,20 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.commands.executeCommand('workbench.view.extension.vibesafe');
     }),
     vscode.workspace.onDidChangeTextDocument((event) => {
-      const updatedResult = codeActions.handleDocumentChange(event);
-      if (!updatedResult) return;
+      const updatedFindings = codeActions.handleDocumentChange(event);
+      if (!updatedFindings) return;
 
-      diagnostics.update(event.document.uri, updatedResult);
-      if (vscode.window.activeTextEditor?.document.uri.toString() === event.document.uri.toString()) {
-        statusBar.update(updatedResult);
-        panel.update(updatedResult);
+      diagnostics.updateFindings(event.document.uri, updatedFindings);
+      const changedUri = event.document.uri.toString();
+      if (changedUri === lastConfirmedUri) {
+        panel.markStale();
+        if (vscode.window.activeTextEditor?.document.uri.toString() === changedUri) {
+          statusBar.setStale();
+        }
       }
     }),
-    // 파일 전환 시 상태바만 대기 상태로 되돌림 (이미 검사한 파일의 밑줄은 유지)
-    vscode.window.onDidChangeActiveTextEditor(() => statusBar.setIdle()),
+    // 파일 전환 시 마지막 확정 결과와 stale 여부에 맞춰 상태바만 복원한다.
+    vscode.window.onDidChangeActiveTextEditor(() => restoreStatusForActiveEditor()),
   );
 }
 

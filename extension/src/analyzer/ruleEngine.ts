@@ -74,8 +74,8 @@ const DESERIALIZATION_LEGAL: LegalRisk = {
 };
 
 const SSRF_LEGAL: LegalRisk = {
-  law: '정보통신망법',
-  article: 'CWE-918',
+  law: '개인정보보호법',
+  article: '§29',
   description: 'Server Side Request Forgery',
   liability: 3,
   sanction: 2,

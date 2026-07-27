@@ -3,7 +3,8 @@
  * Finding.fix.replacement가 있으면 원본 코드를 변경하지 않고 hover로 미리 보여준다.
  */
 import * as vscode from 'vscode';
-import { AnalysisResult, Finding, computeRiskScore } from './analyzer';
+import { AnalysisResult, Finding } from './analyzer';
+import { DocumentAnalysisState } from './analysisState';
 import {
   DocumentSnapshot,
   createDocumentSnapshot,
@@ -13,12 +14,6 @@ import {
   buildSuggestedCodeDiff,
   buildSuggestedCodePreview,
 } from './fixSuggestionPreview';
-import { rebaseFindings } from './findingRebase';
-
-interface CachedAnalysis {
-  result: AnalysisResult;
-  snapshot: DocumentSnapshot;
-}
 
 const STALE_DOCUMENT_MESSAGE =
   'VibeSafe: 검사 후 코드가 변경되어 수정 제안을 표시하지 않았습니다. 다시 검사해 주세요.';
@@ -28,40 +23,31 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
     providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
   };
 
-  /** uri.toString() → 최신 분석 결과와 분석 당시 문서 상태 */
-  private readonly results = new Map<string, CachedAnalysis>();
+  /** uri.toString() → 마지막 확정 결과와 편집용 finding 상태 */
+  private readonly results = new Map<string, DocumentAnalysisState>();
 
   setResult(result: AnalysisResult, snapshot: DocumentSnapshot): void {
-    this.results.set(snapshot.uri, { result, snapshot });
+    this.results.set(snapshot.uri, new DocumentAnalysisState(result, snapshot));
   }
 
   /**
    * 한 취약점을 수정한 뒤에도 나머지 결과를 계속 사용할 수 있도록 위치를 보정한다.
    * 편집과 겹친 결과만 제거하며 새 취약점 탐지는 다음 수동 검사에서 수행한다.
    */
-  handleDocumentChange(event: vscode.TextDocumentChangeEvent): AnalysisResult | undefined {
+  handleDocumentChange(event: vscode.TextDocumentChangeEvent): readonly Finding[] | undefined {
     const key = event.document.uri.toString();
     const cached = this.results.get(key);
     if (!cached || event.contentChanges.length === 0) return undefined;
 
     const currentSnapshot = snapshotFromDocument(event.document);
-    const findings = rebaseFindings(
-      cached.result.findings,
-      cached.snapshot.text,
-      currentSnapshot.text,
+    return cached.rebase(
+      currentSnapshot,
       event.contentChanges.map((change) => ({
         rangeOffset: change.rangeOffset,
         rangeLength: change.rangeLength,
         text: change.text,
       })),
     );
-    cached.result = {
-      ...cached.result,
-      findings,
-      riskScore: computeRiskScore(findings),
-    };
-    cached.snapshot = currentSnapshot;
-    return cached.result;
   }
 
   provideCodeActions(
@@ -72,7 +58,7 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
     if (!cached || !isCurrentDocument(document, cached.snapshot)) return [];
 
     const actions: vscode.CodeAction[] = [];
-    for (const f of cached.result.findings) {
+    for (const f of cached.workingFindings) {
       if (!f.fix?.replacement) continue;
       const fRange = new vscode.Range(f.line, f.startCol, f.line, f.endCol);
       if (!fRange.intersection(range)) continue;
@@ -98,7 +84,7 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
     const cached = this.results.get(document.uri.toString());
     if (!cached || !isCurrentDocument(document, cached.snapshot)) return undefined;
 
-    const finding = cached.result.findings.find(
+    const finding = cached.workingFindings.find(
       (candidate) =>
         Boolean(candidate.fix?.replacement)
         && findingRange(document, candidate).contains(position),
@@ -145,7 +131,7 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
       return;
     }
 
-    const currentFinding = cached.result.findings.find((candidate) =>
+    const currentFinding = cached.workingFindings.find((candidate) =>
       candidate === finding
       || (
         candidate.ruleId === finding.ruleId

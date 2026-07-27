@@ -28,6 +28,12 @@ export class StatusBarManager {
     this.item.tooltip = '분석 중';
   }
 
+  setStale(): void {
+    this.item.text = '$(warning) VibeSafe: 재검사 필요';
+    this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    this.item.tooltip = '검사 후 코드가 변경되었습니다 — 클릭하면 다시 검사합니다';
+  }
+
   update(result: AnalysisResult): void {
     const n = result.findings.length;
     if (n > 0) {

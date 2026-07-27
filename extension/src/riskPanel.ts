@@ -3,6 +3,7 @@
  * 위험도 점수, 유형별로 묶은 탐지 결과, 법적 리스크, 과금 경보를 표시한다.
  */
 import * as vscode from 'vscode';
+import { ConfirmedAnalysisState } from './analysisState';
 import {
   AnalysisResult,
   Finding,
@@ -25,7 +26,7 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   static readonly viewId = 'vibesafe.riskPanel';
 
   private view?: vscode.WebviewView;
-  private lastResult?: AnalysisResult;
+  private readonly analysis = new ConfirmedAnalysisState();
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -46,11 +47,30 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   }
 
   update(result: AnalysisResult): void {
-    this.lastResult = result;
+    this.analysis.confirm(result);
     if (this.view) this.view.webview.html = this.render();
   }
 
+  /**
+   * 첫 문서 변경에서만 stale 상태로 전환하고 Webview를 다시 렌더링한다.
+   * 이후 키 입력에서는 false를 반환하며 기존 DOM과 스크롤을 유지한다.
+   */
+  markStale(): boolean {
+    if (!this.analysis.markStale()) return false;
+    if (this.view) this.view.webview.html = this.render();
+    return true;
+  }
+
+  get isStale(): boolean {
+    return this.analysis.isStale;
+  }
+
+  get lastResult(): AnalysisResult | undefined {
+    return this.analysis.result;
+  }
+
   private async gotoLine(line: number): Promise<void> {
+    if (this.analysis.isStale) return;
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
     const pos = new vscode.Position(line, 0);
@@ -59,7 +79,8 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   }
 
   private render(): string {
-    const result = this.lastResult;
+    const result = this.analysis.result;
+    const stale = this.analysis.isStale;
     const score = result?.riskScore ?? 0;
     const findings = result?.findings ?? [];
     const findingGroups = groupFindings(findings);
@@ -80,7 +101,7 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
       : '';
 
     const findingCards = findingGroups
-      .map((group) => renderFindingGroup(group, fileName))
+      .map((group) => renderFindingGroup(group, fileName, stale))
       .join('');
 
     const legalCards = legalGroups
@@ -180,20 +201,30 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     gap: 6px;
     margin-bottom: 12px;
     padding: 8px 10px;
-    border: 1px solid var(--vscode-button-border, transparent);
+    border: 1px solid #389ac1;
     border-radius: 6px;
-    color: var(--vscode-button-foreground);
-    background: var(--vscode-button-background);
+    color: #fff;
+    background: #389ac1;
     font-weight: 600;
     cursor: pointer;
   }
 
-  .analyze-btn:hover { background: var(--vscode-button-hoverBackground); }
+  .analyze-btn:hover { background: #389ac1; }
   .analyze-btn:focus-visible,
   summary:focus-visible,
   .location-link:focus-visible {
     outline: 1px solid var(--vscode-focusBorder);
     outline-offset: 2px;
+  }
+
+  .stale-notice {
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border: 1px solid color-mix(in srgb, #c98200 40%, transparent);
+    border-radius: 6px;
+    color: var(--vscode-foreground);
+    background: color-mix(in srgb, #c98200 10%, var(--vscode-sideBar-background));
+    font-weight: 650;
   }
 
   .score-card {
@@ -405,6 +436,13 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
 
   .location-link:hover { background: var(--vscode-button-secondaryHoverBackground); }
 
+  .location-link:disabled {
+    color: var(--vscode-disabledForeground);
+    background: var(--vscode-button-secondaryBackground);
+    cursor: not-allowed;
+    opacity: 0.75;
+  }
+
   .legal-card {
     padding: 10px;
     border: 1px solid var(--vscode-widget-border, transparent);
@@ -514,9 +552,11 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     현재 코드 검사하기
   </button>
 
-  <section class="score-card" aria-label="현재 위험도">
+  ${stale ? '<div class="stale-notice" role="status">코드 변경됨 · 재검사 필요</div>' : ''}
+
+  <section class="score-card" aria-label="마지막 검사 위험도">
     <div class="score-top">
-      <span class="score-label">현재 위험도</span>
+      <span class="score-label">마지막 검사 위험도</span>
       <span class="status-badge">${riskLabel(score)}</span>
     </div>
     <div class="score-value">
@@ -628,7 +668,11 @@ function isApiKeyCostFinding(finding: Finding): boolean {
     || (finding.category === 'cost' && finding.cwe?.includes('CWE-798') === true);
 }
 
-function renderFindingGroup(group: FindingGroup, fileName: string): string {
+function renderFindingGroup(
+  group: FindingGroup,
+  fileName: string,
+  stale: boolean,
+): string {
   const finding = group.representative;
   const { title, summary } = presentFinding(finding);
   const lineNumbers = [...new Set(group.findings.map((item) => item.line + 1))]
@@ -661,7 +705,9 @@ function renderFindingGroup(group: FindingGroup, fileName: string): string {
           ${lineNumbers
             .map(
               (lineNumber) =>
-                `<button class="location-link" data-line="${lineNumber - 1}" title="${escapeHtml(fileName)} ${lineNumber}번 line으로 이동">${lineNumber}번 line</button>`,
+                stale
+                  ? `<button class="location-link" disabled title="코드가 변경되었습니다. 재검사 후 이동할 수 있습니다.">${lineNumber}번 line · 재검사 후 이동 가능</button>`
+                  : `<button class="location-link" data-line="${lineNumber - 1}" title="${escapeHtml(fileName)} ${lineNumber}번 line으로 이동">${lineNumber}번 line</button>`,
             )
             .join('')}
         </div>

@@ -45,6 +45,19 @@ test('SQL Injection 탐지', async () => {
   assert.ok(f!.fix?.replacement?.includes('?'), '바인딩 파라미터 수정 제안이 있어야 함');
 });
 
+test('SSRF 법 조항은 개인정보보호법 제29조로 표시', async () => {
+  const result = await engine.analyze(
+    'response = requests.get(request.args["url"])',
+    'proxy.py',
+    'python',
+  );
+  const f = result.findings.find((x) => x.ruleId === 'ssrf');
+
+  assert.ok(f, 'SSRF를 탐지해야 함');
+  assert.strictEqual(f!.legal?.law, '개인정보보호법');
+  assert.strictEqual(f!.legal?.article, '§29');
+});
+
 test('MD5 해싱 탐지', async () => {
   const result = await engine.analyze('hashed = hashlib.md5(password.encode())', 'auth.py', 'python');
   const f = result.findings.find((x) => x.ruleId === 'weak-hash');
