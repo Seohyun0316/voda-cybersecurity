@@ -3,7 +3,7 @@
  * Finding.fix.replacement가 있으면 원본 코드를 변경하지 않고 hover로 미리 보여준다.
  */
 import * as vscode from 'vscode';
-import { AnalysisResult, Finding } from './analyzer';
+import { AnalysisResult, Finding, computeRiskScore } from './analyzer';
 import {
   DocumentSnapshot,
   createDocumentSnapshot,
@@ -13,6 +13,7 @@ import {
   buildSuggestedCodeDiff,
   buildSuggestedCodePreview,
 } from './fixSuggestionPreview';
+import { rebaseFindings } from './findingRebase';
 
 interface CachedAnalysis {
   result: AnalysisResult;
@@ -32,6 +33,35 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
 
   setResult(result: AnalysisResult, snapshot: DocumentSnapshot): void {
     this.results.set(snapshot.uri, { result, snapshot });
+  }
+
+  /**
+   * 한 취약점을 수정한 뒤에도 나머지 결과를 계속 사용할 수 있도록 위치를 보정한다.
+   * 편집과 겹친 결과만 제거하며 새 취약점 탐지는 다음 수동 검사에서 수행한다.
+   */
+  handleDocumentChange(event: vscode.TextDocumentChangeEvent): AnalysisResult | undefined {
+    const key = event.document.uri.toString();
+    const cached = this.results.get(key);
+    if (!cached || event.contentChanges.length === 0) return undefined;
+
+    const currentSnapshot = snapshotFromDocument(event.document);
+    const findings = rebaseFindings(
+      cached.result.findings,
+      cached.snapshot.text,
+      currentSnapshot.text,
+      event.contentChanges.map((change) => ({
+        rangeOffset: change.rangeOffset,
+        rangeLength: change.rangeLength,
+        text: change.text,
+      })),
+    );
+    cached.result = {
+      ...cached.result,
+      findings,
+      riskScore: computeRiskScore(findings),
+    };
+    cached.snapshot = currentSnapshot;
+    return cached.result;
   }
 
   provideCodeActions(
@@ -68,12 +98,11 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
     const cached = this.results.get(document.uri.toString());
     if (!cached || !isCurrentDocument(document, cached.snapshot)) return undefined;
 
-    const fixableOnLine = cached.result.findings.filter(
-      (finding) => finding.line === position.line && Boolean(finding.fix?.replacement),
+    const finding = cached.result.findings.find(
+      (candidate) =>
+        Boolean(candidate.fix?.replacement)
+        && findingRange(document, candidate).contains(position),
     );
-    const finding =
-      fixableOnLine.find((candidate) => findingRange(document, candidate).contains(position))
-      ?? fixableOnLine[0];
     const replacement = finding?.fix?.replacement;
     if (!replacement) return undefined;
 
@@ -97,7 +126,7 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vs
     );
     contents.isTrusted = false;
 
-    return new vscode.Hover(contents, document.lineAt(position.line).range);
+    return new vscode.Hover(contents, range);
   }
 
   /** 전구 메뉴에서 선택한 한 건의 수정 제안을 코드 위에 표시한다. */

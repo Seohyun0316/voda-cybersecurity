@@ -64,14 +64,11 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     const findings = result?.findings ?? [];
     const findingGroups = groupFindings(findings);
     const legalGroups = groupLegalRisks(findings);
-    // TODO: cost에는 API 키 노출뿐 아니라 resource_exhaustion도 포함된다.
-    // 과금 경고를 위험 유형별 안내 문구로 나눠, 자원 제한 위험에 키 폐기를 권하지 않도록 한다.
-    const costFindings = findings.filter(
-      (finding) =>
-        finding.category === 'cost' ||
-        finding.ruleId === 'exposed-api-key' ||
-        finding.ruleId === 'A04-798-002',
+    const apiKeyCostFindings = findings.filter(isApiKeyCostFinding);
+    const resourceCostFindings = findings.filter(
+      (finding) => finding.category === 'cost' && !isApiKeyCostFinding(finding),
     );
+    const costFindingCount = apiKeyCostFindings.length + resourceCostFindings.length;
     const scoreTone = score >= 70 ? 'high' : score >= 40 ? 'medium' : score > 0 ? 'low' : 'safe';
     const scoreColor = score >= 70 ? '#e05d44' : score >= 40 ? '#c98200' : '#2e9b65';
     const fileName = baseName(result?.fileName ?? '');
@@ -483,6 +480,8 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     color: var(--vscode-descriptionForeground);
   }
 
+  .cost-alert + .cost-alert { margin-top: 7px; }
+
   .empty {
     padding: 12px 10px;
     border: 1px dashed var(--vscode-widget-border, var(--vscode-descriptionForeground));
@@ -553,19 +552,32 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     ${legalCards}
   </section>` : ''}
 
-  ${costFindings.length > 0 ? `
+  ${costFindingCount > 0 ? `
   <section class="section">
     <div class="section-heading">
-      <h2>API 과금 경고</h2>
-      <span>${costFindings.length}건</span>
+      <h2>${apiKeyCostFindings.length > 0 && resourceCostFindings.length > 0
+        ? '비용·자원 경고'
+        : apiKeyCostFindings.length > 0
+          ? 'API 과금 경고'
+          : '자원 사용 경고'}</h2>
+      <span>${costFindingCount}건</span>
     </div>
+    ${apiKeyCostFindings.length > 0 ? `
     <div class="cost-alert">
       <span aria-hidden="true">💸</span>
       <div>
         <strong>노출된 키를 즉시 확인하세요</strong>
         <p>무단 사용을 막기 위해 키를 폐기하고 새 키로 교체하는 것을 권장합니다.</p>
       </div>
-    </div>
+    </div>` : ''}
+    ${resourceCostFindings.length > 0 ? `
+    <div class="cost-alert">
+      <span aria-hidden="true">⚠️</span>
+      <div>
+        <strong>요청량과 자원 제한을 설정하세요</strong>
+        <p>속도·반복 횟수·파일 크기에 상한을 두어 장애와 예상치 못한 비용을 방지하세요.</p>
+      </div>
+    </div>` : ''}
   </section>` : ''}
 
   <div class="engine">
@@ -608,6 +620,12 @@ function groupFindings(findings: Finding[]): FindingGroup[] {
   }
 
   return [...groups.values()];
+}
+
+function isApiKeyCostFinding(finding: Finding): boolean {
+  return finding.ruleId === 'exposed-api-key'
+    || finding.ruleId === 'A04-798-002'
+    || (finding.category === 'cost' && finding.cwe?.includes('CWE-798') === true);
 }
 
 function renderFindingGroup(group: FindingGroup, fileName: string): string {

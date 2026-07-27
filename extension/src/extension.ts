@@ -140,6 +140,16 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('vibesafe.showPanel', () => {
       vscode.commands.executeCommand('workbench.view.extension.vibesafe');
     }),
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      const updatedResult = codeActions.handleDocumentChange(event);
+      if (!updatedResult) return;
+
+      diagnostics.update(event.document.uri, updatedResult);
+      if (vscode.window.activeTextEditor?.document.uri.toString() === event.document.uri.toString()) {
+        statusBar.update(updatedResult);
+        panel.update(updatedResult);
+      }
+    }),
     // 파일 전환 시 상태바만 대기 상태로 되돌림 (이미 검사한 파일의 밑줄은 유지)
     vscode.window.onDidChangeActiveTextEditor(() => statusBar.setIdle()),
   );
