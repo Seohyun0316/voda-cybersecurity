@@ -12,7 +12,7 @@ import { RuleEngineAnalyzer } from './analyzer/ruleEngine';
 import { DiagnosticsManager } from './diagnostics';
 import { RiskPanelProvider } from './riskPanel';
 import { StatusBarManager } from './statusBar';
-import { VibeSafeCodeActionProvider, applyAllFixes } from './codeActions';
+import { VibeSafeCodeActionProvider } from './codeActions';
 import { createDocumentSnapshot } from './documentSnapshot';
 import { isAnalysisResultCurrent } from './analysisFreshness';
 
@@ -27,10 +27,6 @@ export function activate(context: vscode.ExtensionContext): void {
   const panel = new RiskPanelProvider(
     context.extensionUri,
     {
-      onApplyFixes: () => applyAllFixes(
-        panel.getLastResult(),
-        panel.getLastSnapshot(),
-      ),
       onScan: () => vscode.commands.executeCommand('vibesafe.analyzeFile'),
     },
   );
@@ -41,6 +37,10 @@ export function activate(context: vscode.ExtensionContext): void {
       [...SUPPORTED].map((language) => ({ language })),
       codeActions,
       VibeSafeCodeActionProvider.metadata,
+    ),
+    vscode.languages.registerHoverProvider(
+      [...SUPPORTED].map((language) => ({ language })),
+      codeActions,
     ),
   );
 
@@ -83,7 +83,7 @@ export function activate(context: vscode.ExtensionContext): void {
       diagnostics.update(doc.uri, result);
       codeActions.setResult(result, analyzedSnapshot);
       statusBar.update(result);
-      panel.update(result, analyzedSnapshot);
+      panel.update(result);
     } catch (err) {
       if (!isCurrentScan(scanId, analyzedSnapshot)) {
         if (scanId === latestScanId) statusBar.setIdle();
@@ -133,9 +133,9 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('vibesafe.analyzeFile', () => runScan()),
     vscode.commands.registerCommand(
-      'vibesafe.applyQuickFix',
-      (uri: vscode.Uri, finding: Parameters<VibeSafeCodeActionProvider['applyFix']>[1]) =>
-        codeActions.applyFix(uri, finding),
+      'vibesafe.showFixSuggestion',
+      (uri: vscode.Uri, finding: Parameters<VibeSafeCodeActionProvider['showSuggestion']>[1]) =>
+        codeActions.showSuggestion(uri, finding),
     ),
     vscode.commands.registerCommand('vibesafe.showPanel', () => {
       vscode.commands.executeCommand('workbench.view.extension.vibesafe');

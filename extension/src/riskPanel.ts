@@ -1,6 +1,6 @@
 /**
  * 사이드 위험 분석 패널 (F1 담당). 목업 오른쪽 VibeSafe 패널을 WebviewView로 구현.
- * 위험도 점수 바, 감지된 위험 목록, 법적 리스크, 과금 경보, 수동 검사 버튼, 자동 수정 버튼.
+ * 위험도 점수 바, 감지된 위험 목록, 법적 리스크, 과금 경보, 수동 검사 버튼.
  */
 import * as vscode from 'vscode';
 import {
@@ -11,10 +11,7 @@ import {
   groupLegalRisks,
   riskLabel,
 } from './analyzer';
-import { DocumentSnapshot } from './documentSnapshot';
-
 interface PanelCallbacks {
-  onApplyFixes: () => void;
   onScan: () => void;
 }
 
@@ -23,7 +20,6 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
 
   private view?: vscode.WebviewView;
   private lastResult?: AnalysisResult;
-  private lastSnapshot?: DocumentSnapshot;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -38,24 +34,14 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
     };
     view.webview.onDidReceiveMessage((msg) => {
       if (msg.type === 'runAnalysis') this.callbacks.onScan();
-      if (msg.type === 'applyFixes') this.callbacks.onApplyFixes();
       if (msg.type === 'gotoLine') this.gotoLine(msg.line);
     });
     view.webview.html = this.render();
   }
 
-  update(result: AnalysisResult, snapshot: DocumentSnapshot): void {
+  update(result: AnalysisResult): void {
     this.lastResult = result;
-    this.lastSnapshot = snapshot;
     if (this.view) this.view.webview.html = this.render();
-  }
-
-  getLastResult(): AnalysisResult | undefined {
-    return this.lastResult;
-  }
-
-  getLastSnapshot(): DocumentSnapshot | undefined {
-    return this.lastSnapshot;
   }
 
   private async gotoLine(line: number): Promise<void> {
@@ -196,8 +182,6 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   .legal-list { margin: 2px 0 0; padding-left: 14px; color: var(--vscode-descriptionForeground); font-size: 10px; line-height: 1.4; }
   .legal-list li { margin: 1px 0; }
   .empty { color: var(--vscode-descriptionForeground); padding: 4px 0; }
-  button.fix-btn { width: 100%; margin-top: 14px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; padding: 6px; cursor: pointer; }
-  button.fix-btn:hover { background: var(--vscode-button-hoverBackground); }
   .engine { margin-top: 8px; font-size: 10px; color: var(--vscode-descriptionForeground); }
 </style>
 </head>
@@ -227,7 +211,6 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   <div class="label">💸 API 과금 경보</div>
   ${costItems || '<div class="empty">해당 없음</div>'}
 
-  <button id="fix" class="fix-btn">자동 수정 제안 적용 →</button>
   <div class="engine">엔진: ${r?.engine === 'remote' ? 'ML 백엔드' : '로컬 규칙'}${r ? ` · ${new Date(r.analyzedAt).toLocaleTimeString()}` : ''}</div>
 
 <script>
@@ -235,7 +218,6 @@ export class RiskPanelProvider implements vscode.WebviewViewProvider {
   document.getElementById('run-analysis')?.addEventListener('click', () => {
     vscode.postMessage({ type: 'runAnalysis' });
   });
-  document.getElementById('fix')?.addEventListener('click', () => vscode.postMessage({ type: 'applyFixes' }));
   document.querySelectorAll('.item[data-line]').forEach(el => {
     el.addEventListener('click', () => vscode.postMessage({ type: 'gotoLine', line: Number(el.dataset.line) }));
   });

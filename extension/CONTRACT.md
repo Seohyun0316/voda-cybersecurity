@@ -16,7 +16,7 @@ F1, F2가 합의해야 할 것들을 미리 전부 정해둔 문서. Day 1에 �
 | message | 한국어, 한 줄, "무엇이 위험한지" (예: `하드코딩 비밀번호 — 개인정보보호법 §29`) |
 | detail | 한국어, 한 줄, "어떻게 고치는지" (예: `환경변수(.env) 사용 권장`) |
 | legal | 법적 근거 있을 때만 채움. `{ law, article, description, liability, sanction, sanctionType? }` — liability/sanction은 아래 표의 값 필수 |
-| fix.replacement | 해당 범위(line, startCol~endCol)를 **통째로 대체**할 문자열 |
+| fix.replacement | 해당 범위(line, startCol~endCol)에 제안할 대체 문자열. UI는 원문을 변경하지 않고 hover 미리보기로만 표시 |
 | analyzedAt | ISO 8601 문자열 |
 
 **위험도 점수 (`docs/risk-scoring.md` 기준)**
@@ -52,7 +52,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 | severity 매핑 | high → error, medium → warning, low → info |
 | category | 백엔드 상세 카테고리를 `api-spec.md` 표에 따라 다섯 UI 카테고리로 변환 |
 | legal | `liability`, `sanction`은 MVP에서 `null` 허용. 표시용 제재 유형은 API의 `sanction_type`을 사용 |
-| fix | 지정 범위에 바로 적용 가능한 실행 코드일 때만 허용 |
+| fix | 지정 범위에 제안할 수 있는 실행 코드일 때만 허용. 클라이언트는 자동 적용하지 않음 |
 | ML | 룰 후보의 2차 필터이며 확률은 응답에 노출하지 않음 |
 | risk_score | 서버는 현재 findings의 최대 점수를 반환; 누락/null이면 클라이언트가 §1 공식으로 계산 |
 | 오류 | non-2xx를 원격 분석 실패로 처리 |
@@ -85,6 +85,7 @@ API의 단일 기준 문서는 저장소의 [`docs/api-spec.md`](../docs/api-spe
 - 검사 대상: 현재 열린 파일 하나. 서버는 로컬호스트에서 별도 실행 (extension이 켜고 끄지 않음, 서버 다운 시 로컬 룰 폴백)
 - 미지원 파일: 검사 시 안내 메시지 표시
 - 원격 엔진 실패: 경고 메시지 1회 → 해당 검사만 로컬 룰로 재분석하며 설정은 `remote`로 유지
+- 수정 제안: 검사 결과가 유효한 동안 취약 코드가 있는 줄에 마우스를 올리면 해당 줄의 hover 미리보기를 표시하며, 원본 문서는 변경하지 않음
 
 ## 6. Git 규칙
 
@@ -99,7 +100,7 @@ Day 4 종료 시 아래 전부 통과하면 v0.1 완성:
 
 - [ ] `sample/auth.py`에서 검사 버튼 클릭 → 1초 내 밑줄·패널·상태바 갱신
 - [ ] 경고 원인 줄 삭제 후 재검사 → 경고 소멸 + 점수 하락
-- [ ] quick fix 적용 후 재검사 → 경고 소멸
+- [ ] 각 취약 코드 줄에 마우스 hover → 해당 수정 제안 표시 + 원본 문서 변경 없음
 - [ ] mock 서버 + remote 모드 동작, 서버 다운 시 폴백
 - [ ] `npm test` 전부 통과
 - [ ] `vsce package`로 .vsix 생성 및 설치 확인

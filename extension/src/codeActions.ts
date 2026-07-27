@@ -1,15 +1,15 @@
 /**
- * Quick Fix 제공자 (F2 담당). 목업의 "자동 수정 제안 보기" 버튼과 연결.
- * Finding.fix.replacement 가 있으면 전구(💡) 메뉴에 수정 제안을 띄운다.
+ * 수정 제안 제공자 (F2 담당).
+ * Finding.fix.replacement가 있으면 원본 코드를 변경하지 않고 hover로 미리 보여준다.
  */
 import * as vscode from 'vscode';
-import { AnalysisResult, Finding, createAnalyzer } from './analyzer';
+import { AnalysisResult, Finding } from './analyzer';
 import {
   DocumentSnapshot,
   createDocumentSnapshot,
   isDocumentSnapshotCurrent,
-  refreshDocumentSnapshot,
 } from './documentSnapshot';
+import { buildSuggestedCodePreview } from './fixSuggestionPreview';
 
 interface CachedAnalysis {
   result: AnalysisResult;
@@ -17,9 +17,9 @@ interface CachedAnalysis {
 }
 
 const STALE_DOCUMENT_MESSAGE =
-  'VibeSafe: 검사 후 코드가 변경되어 수정을 적용하지 않았습니다. 다시 검사해 주세요.';
+  'VibeSafe: 검사 후 코드가 변경되어 수정 제안을 표시하지 않았습니다. 다시 검사해 주세요.';
 
-export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider {
+export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider, vscode.HoverProvider {
   static readonly metadata: vscode.CodeActionProviderMetadata = {
     providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
   };
@@ -36,7 +36,7 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider {
     range: vscode.Range,
   ): vscode.CodeAction[] {
     const cached = this.results.get(document.uri.toString());
-    if (!cached) return [];
+    if (!cached || !isCurrentDocument(document, cached.snapshot)) return [];
 
     const actions: vscode.CodeAction[] = [];
     for (const f of cached.result.findings) {
@@ -44,19 +44,56 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider {
       const fRange = new vscode.Range(f.line, f.startCol, f.line, f.endCol);
       if (!fRange.intersection(range)) continue;
 
-      const action = new vscode.CodeAction(f.fix.title, vscode.CodeActionKind.QuickFix);
+      const action = new vscode.CodeAction(
+        `수정 제안 보기: ${f.fix.title}`,
+        vscode.CodeActionKind.QuickFix,
+      );
       action.command = {
-        command: 'vibesafe.applyQuickFix',
+        command: 'vibesafe.showFixSuggestion',
         title: f.fix.title,
         arguments: [document.uri, f],
       };
-      action.isPreferred = true;
       actions.push(action);
     }
     return actions;
   }
 
-  async applyFix(uri: vscode.Uri, finding: Finding): Promise<void> {
+  provideHover(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+  ): vscode.Hover | undefined {
+    const cached = this.results.get(document.uri.toString());
+    if (!cached || !isCurrentDocument(document, cached.snapshot)) return undefined;
+
+    const fixableOnLine = cached.result.findings.filter(
+      (finding) => finding.line === position.line && Boolean(finding.fix?.replacement),
+    );
+    const finding =
+      fixableOnLine.find((candidate) => findingRange(document, candidate).contains(position))
+      ?? fixableOnLine[0];
+    const replacement = finding?.fix?.replacement;
+    if (!replacement) return undefined;
+
+    const range = findingRange(document, finding);
+    const preview = buildSuggestedCodePreview(
+      document.lineAt(range.start.line).text,
+      range.start.character,
+      range.end.character,
+      replacement,
+    );
+    const contents = new vscode.MarkdownString(undefined, true);
+    contents.appendMarkdown('$(lightbulb) **VibeSafe 수정 제안**\n\n');
+    contents.appendMarkdown('**제안 내용:** ');
+    contents.appendText(finding.fix?.title ?? '안전한 코드로 변경');
+    contents.appendMarkdown('\n\n');
+    contents.appendCodeblock(preview, codeBlockLanguage(document.languageId));
+    contents.isTrusted = false;
+
+    return new vscode.Hover(contents, document.lineAt(position.line).range);
+  }
+
+  /** 전구 메뉴에서 선택한 한 건의 수정 제안을 코드 위에 표시한다. */
+  async showSuggestion(uri: vscode.Uri, finding: Finding): Promise<void> {
     const key = uri.toString();
     const cached = this.results.get(key);
     if (!cached) {
@@ -85,92 +122,24 @@ export class VibeSafeCodeActionProvider implements vscode.CodeActionProvider {
       return;
     }
 
-    const edit = new vscode.WorkspaceEdit();
-    edit.replace(
-      uri,
-      new vscode.Range(
-        currentFinding.line,
-        currentFinding.startCol,
-        currentFinding.line,
-        currentFinding.endCol,
-      ),
-      currentFinding.fix.replacement,
-    );
-
-    const success = await vscode.workspace.applyEdit(edit);
-    if (!success) {
-      vscode.window.showErrorMessage('VibeSafe: 자동 수정을 적용하지 못했습니다.');
-      return;
-    }
-
-    // 적용 직후 기존 좌표와 스냅샷은 더 이상 유효하지 않다.
-    this.results.delete(key);
-  }
-}
-
-/** "자동 수정 제안 적용" — 위에서부터 한 건씩 적용하고 다음 수정 위치를 다시 계산 */
-export async function applyAllFixes(
-  result: AnalysisResult | undefined,
-  snapshot: DocumentSnapshot | undefined,
-): Promise<void> {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor || !result || !snapshot) {
-    vscode.window.showInformationMessage('VibeSafe: 적용할 수정 제안이 없습니다.');
-    return;
-  }
-  if (editor.document.fileName !== result.fileName) {
-    vscode.window.showInformationMessage('VibeSafe: 현재 파일을 먼저 검사한 뒤 자동 수정을 적용해 주세요.');
-    return;
-  }
-  if (!isCurrentDocument(editor.document, snapshot)) {
-    vscode.window.showInformationMessage(STALE_DOCUMENT_MESSAGE);
-    return;
-  }
-  const fixable = result.findings.filter((f): f is Finding & { fix: { replacement: string; title: string } } =>
-    Boolean(f.fix?.replacement),
-  );
-  if (fixable.length === 0) {
-    vscode.window.showInformationMessage('VibeSafe: 자동 수정 가능한 항목이 없습니다.');
-    return;
+    const editor = await vscode.window.showTextDocument(document, {
+      preview: false,
+      preserveFocus: false,
+    });
+    await this.presentSuggestion(editor, currentFinding);
   }
 
-  const target = fixable[0];
-  const edit = new vscode.WorkspaceEdit();
-  edit.replace(
-    editor.document.uri,
-    new vscode.Range(target.line, target.startCol, target.line, target.endCol),
-    target.fix.replacement,
-  );
+  private async presentSuggestion(
+    editor: vscode.TextEditor,
+    finding: Finding,
+  ): Promise<void> {
+    const range = findingRange(editor.document, finding);
+    editor.selection = new vscode.Selection(range.start, range.start);
+    editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
 
-  const success = await vscode.workspace.applyEdit(edit);
-  if (!success) {
-    vscode.window.showErrorMessage('VibeSafe: 자동 수정을 적용하지 못했습니다.');
-    return;
-  }
-
-  const remainingCount = fixable.length - 1;
-  vscode.window.showInformationMessage(
-    `VibeSafe: 1건 자동 수정 적용 완료 ${remainingCount > 0 ? `(남은 수정 ${remainingCount}건)` : '(모든 수정 완료!)'}`,
-  );
-
-  // 다음 버튼 클릭에서 이미 수정한 항목을 다시 적용하지 않도록 즉시 제거한다.
-  result.findings = result.findings.filter((finding) => finding !== target);
-
-  // 교체 문자열의 길이가 달라져도 다음 항목의 위치가 정확하도록 조용히 재분석한다.
-  try {
-    const doc = editor.document;
-    const currentSnapshot = snapshotFromDocument(doc);
-    const analyzer = createAnalyzer(doc.languageId);
-    const updatedResult = await analyzer.analyze(
-      currentSnapshot.text,
-      doc.fileName,
-      doc.languageId,
-    );
-    if (!isCurrentDocument(doc, currentSnapshot)) return;
-    result.findings = updatedResult.findings;
-    refreshDocumentSnapshot(snapshot, currentSnapshot);
-  } catch {
-    // 원격 분석이 일시적으로 실패해도 이미 적용된 수정은 유지한다.
+    // selection 변경 뒤 hover provider가 해당 줄의 분석 결과를 읽도록 다음 이벤트 루프에서 실행한다.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await vscode.commands.executeCommand('editor.action.showHover');
   }
 }
 
@@ -187,4 +156,26 @@ function isCurrentDocument(
   snapshot: DocumentSnapshot,
 ): boolean {
   return isDocumentSnapshotCurrent(snapshot, snapshotFromDocument(document));
+}
+
+function findingRange(
+  document: vscode.TextDocument,
+  finding: Finding,
+): vscode.Range {
+  const line = Math.min(Math.max(finding.line, 0), Math.max(document.lineCount - 1, 0));
+  const lineLength = document.lineAt(line).text.length;
+  const start = Math.min(Math.max(finding.startCol, 0), lineLength);
+  const end = Math.min(Math.max(finding.endCol, start), lineLength);
+  return new vscode.Range(line, start, line, end);
+}
+
+function codeBlockLanguage(languageId: string): string {
+  switch (languageId) {
+    case 'javascriptreact':
+      return 'javascript';
+    case 'typescriptreact':
+      return 'typescript';
+    default:
+      return languageId;
+  }
 }

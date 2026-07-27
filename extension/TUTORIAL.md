@@ -9,7 +9,7 @@ AI 생성 코드의 보안·법적 위험을 **검사 버튼 한 번으로** 표
                                     │ AnalysisResult { riskScore, findings[] }
                  ┌──────────┬───────┴──────┬───────────┐
                  진단(밑줄+   사이드 패널      상태바       Quick Fix
-                 문제 패널)   (webview)                   (💡 자동수정)
+                 문제 패널)   (webview)                   (💡 수정 제안)
 ```
 
 | 목업 UI | 담당 파일 | 담당 |
@@ -18,7 +18,7 @@ AI 생성 코드의 보안·법적 위험을 **검사 버튼 한 번으로** 표
 | 오른쪽 위험도 패널 | `src/riskPanel.ts` | F1 |
 | 상태바 "VibeSafe: 위험 3" | `src/statusBar.ts` | F1 |
 | 탐지 규칙 엔진 | `src/analyzer/ruleEngine.ts` | F2 |
-| 💡 자동 수정 | `src/codeActions.ts` | F2 |
+| 💡 수정 제안 미리보기 | `src/codeActions.ts` | F2 |
 | ML 백엔드 클라이언트 + mock 서버 | `src/analyzer/remoteAnalyzer.ts`, `mock-server/server.js` | F2 |
 | 조립 | `src/extension.ts` | 같이 |
 
@@ -83,27 +83,30 @@ collection.set(uri, diagnostics);
 
 ---
 
-## Day 3 — F1: 사이드 패널 / F2: 자동 수정 + 백엔드 통신 구조
+## Day 3 — F1: 사이드 패널 / F2: 수정 제안 + 백엔드 통신 구조
 
 ### F1: 사이드 위험 패널 (webview)
 
 `src/riskPanel.ts`. 구조는 3단계: package.json에 선언(이미 됨) → `registerWebviewViewProvider` → HTML 렌더링 + 양방향 메시지.
 
 - extension → webview: 검사 끝날 때마다 `view.webview.html = render()`
-- webview → extension: `{type:'scan'}`(검사 실행 버튼) / `{type:'applyFixes'}` / `{type:'gotoLine', line}`
+- webview → extension: `{type:'runAnalysis'}`(검사 실행 버튼) / `{type:'gotoLine', line}`
 
 주의 두 가지: 색은 `var(--vscode-*)` 변수만 사용(테마 자동 대응), 사용자 데이터는 `escapeHtml()` 필수(XSS).
 
-확인: "▶ 현재 파일 검사" 버튼으로 검사 실행 → 점수 바 채워짐, 항목 클릭 → 해당 줄 점프, "자동 수정 적용" 버튼 동작.
+확인: "▶ 현재 파일 검사" 버튼으로 검사 실행 → 점수 바 채워짐, 항목 클릭 → 해당 줄 점프, 각 취약 코드 줄에 마우스를 올리면 수정 제안 hover 표시. 원본 코드는 변경되지 않아야 한다.
 
-### F2: Quick Fix + 원격 분석기
+### F2: 수정 제안 hover + 원격 분석기
 
-`src/codeActions.ts` — `Finding.fix.replacement`가 있으면 💡 메뉴 제공:
+`src/codeActions.ts` — `Finding.fix.replacement`가 있으면 💡 메뉴와 hover 미리보기를 제공한다. `WorkspaceEdit`로 원문을 변경하지 않는다:
 
 ```ts
 const action = new vscode.CodeAction(f.fix.title, vscode.CodeActionKind.QuickFix);
-action.edit = new vscode.WorkspaceEdit();
-action.edit.replace(document.uri, range, f.fix.replacement);
+action.command = {
+  command: 'vibesafe.showFixSuggestion',
+  title: f.fix.title,
+  arguments: [document.uri, f],
+};
 ```
 
 `src/analyzer/remoteAnalyzer.ts` — 계약 JSON을 POST하고 `AnalysisResult`를 받는 클라이언트(이미 완성). **엔드투엔드 테스트**:

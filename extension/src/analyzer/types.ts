@@ -48,10 +48,10 @@ export interface LegalRisk {
   sanctionType?: SanctionType; // 사용자에게 보여줄 제재 유형
 }
 
-/** 자동 수정 제안 (quick fix) */
+/** 코드 수정 제안 (원문을 변경하지 않는 hover 미리보기에 사용) */
 export interface FixSuggestion {
   title: string;        // 예: "환경변수로 교체"
-  replacement?: string; // 있으면 해당 범위를 이 문자열로 치환
+  replacement?: string; // 해당 범위에 제안할 대체 문자열
 }
 
 /** 탐지된 위험 1건 */
